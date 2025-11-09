@@ -1,3 +1,7 @@
+import 'react-native-url-polyfill/auto';
+import 'react-native-get-random-values';
+import 'react-native-gesture-handler';
+
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { StyleSheet, View, Text, ScrollView, SafeAreaView, TouchableOpacity, Dimensions, Image, Platform, TextInput, FlatList, ActivityIndicator, Alert, Modal, StatusBar, I18nManager, BackHandler } from 'react-native';
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
@@ -84,16 +88,14 @@ TaskManager.defineTask(STEPS_NOTIFICATION_TASK, async () => {
     }
 });
 
-const lightTheme = {
-    primary: '#388E3C', background: '#E8F5E9', card: '#FFFFFF', textPrimary: '#212121', textSecondary: '#757575', progressUnfilled: '#D6EAD7', disabled: '#BDBDBD', carbs: '#007BFF', protein: '#FF7043', fat: '#FFC107', fiber: '#4CAF50', sugar: '#9C27B0', sodium: '#2196F3', overLimit: '#D32F2F', tabBarBackground: '#FFFFFF', tabBarIndicator: '#4CAF50', tabBarIcon: '#222327', white: '#FFFFFF', readOnlyBanner: '#FFA000', indicatorDot: '#1B5E20', statusBar: 'dark-content',
-};
-const darkTheme = {
-    primary: '#66BB6A', background: '#121212', card: '#1E1E1E', textPrimary: '#FFFFFF', textSecondary: '#B0B0B0', progressUnfilled: '#2C2C2C', disabled: '#424242', carbs: '#42A5F5', protein: '#FF8A65', fat: '#FFCA28', fiber: '#81C784', sugar: '#BA68C8', sodium: '#64B5F6', overLimit: '#EF9A9A', tabBarBackground: '#1E1E1E', tabBarIndicator: '#81C784', tabBarIcon: '#E0E0E0', white: '#FFFFFF', readOnlyBanner: '#D48604', indicatorDot: '#A5D6A7', statusBar: 'light-content',
-};
+const lightTheme = { primary: '#388E3C', background: '#E8F5E9', card: '#FFFFFF', textPrimary: '#212121', textSecondary: '#757575', progressUnfilled: '#D6EAD7', disabled: '#BDBDBD', carbs: '#007BFF', protein: '#FF7043', fat: '#FFC107', fiber: '#4CAF50', sugar: '#9C27B0', sodium: '#2196F3', overLimit: '#D32F2F', tabBarBackground: '#FFFFFF', tabBarIndicator: '#4CAF50', tabBarIcon: '#222327', white: '#FFFFFF', readOnlyBanner: '#FFA000', indicatorDot: '#1B5E20', statusBar: 'dark-content', };
+const darkTheme = { primary: '#66BB6A', background: '#121212', card: '#1E1E1E', textPrimary: '#FFFFFF', textSecondary: '#B0B0B0', progressUnfilled: '#2C2C2C', disabled: '#424242', carbs: '#42A5F5', protein: '#FF8A65', fat: '#FFCA28', fiber: '#81C784', sugar: '#BA68C8', sodium: '#64B5F6', overLimit: '#EF9A9A', tabBarBackground: '#1E1E1E', tabBarIndicator: '#81C784', tabBarIcon: '#E0E0E0', white: '#FFFFFF', readOnlyBanner: '#D48604', indicatorDot: '#A5D6A7', statusBar: 'light-content', };
+
+// --- START: FIX --- تعديل ترتيب أيام الأسبوع للغة العربية
 const translations = {
     ar: {
         remainingCalories: 'سعر حراري متبقي', readOnlyBanner: 'أنت تعرض يوماً سابقاً. السجل للقراءة فقط.', mealSectionsTitle: 'أقسام الوجبات', mealSectionsDesc: 'هذا هو السجل التفصيلي لليوم.', breakfast: 'الفطور', lunch: 'الغداء', dinner: 'العشاء', snacks: 'وجبات خفيفة', add_to_meal: '+ أضف إلى {meal}', protein: 'بروتين', carbs: 'كربوهيدرات', fat: 'دهون', fiber: 'ألياف', sugar: 'سكر', sodium: 'صوديوم', g_unit: 'جم', mg_unit: 'مجم', kcal_unit: 'kcal', weight: 'الوزن', water: 'الماء', workouts: 'التمارين', steps: 'الخطوات', not_logged: 'لم يسجل', unsupported: 'غير مدعوم', kg_unit: 'كجم', burned_cal: 'سعر حراري', goal: 'الهدف: ', dailyLogTitle: 'سجل وجبات اليوم', add_to: 'إضافة إلى', search_placeholder: 'ابحث عن كشري، ملوخية، تفاح...', no_results: 'لا توجد نتائج بحث.', local_food: 'أكلة محلية 🇪🇬', error: 'خطأ', search_error_msg: 'الرجاء إدخال اسم طعام للبحث.', fetch_error_msg: 'حدث خطأ أثناء جلب تفاصيل الطعام.', save_error_msg: 'حدث خطأ أثناء حفظ البيانات.', diaryTab: 'يومياتي', reportsTab: 'تقارير', cameraTab: 'كاميرا', profileTab: 'حسابي', weightTrackerTitle: 'تتبع الوزن', waterTrackerTitle: 'تتبع الماء', workoutLogTitle: 'سجل التمارين', stepsReportTitle: 'تقرير الخطوات', foodLogDetailTitle: 'تفاصيل سجل الوجبات', 
-        weekdays: ['س', 'ح', 'ن', 'ث', 'ر', 'خ', 'ج'],
+        weekdays: ['س', 'ح', 'ن', 'ث', 'ر', 'خ', 'ج'], // سبت، أحد، اثنين ... جمعة
         p_macro: 'ب: ', c_macro: 'ك: ', f_macro: 'د: ', fib_macro: 'أ: ', sug_macro: 'س: ', sod_macro: 'ص: ',
         editProfile: 'تعديل الملف الشخصي', settings: 'الإعدادات', about: 'حول التطبيق',
     },
@@ -104,6 +106,8 @@ const translations = {
         editProfile: 'Edit Profile', settings: 'Settings', about: 'About',
     }
 };
+// --- END: FIX ---
+
 const SPOONACULAR_API_KEY = '8752a2c73388456888fef7aac64bcba6';
 const NUTRIENT_GOALS = { fiber: 30, sugar: 50, sodium: 2300 };
 const EMPTY_DAY_DATA = { food: 0, exercise: 0, breakfast: [], lunch: [], dinner: [], snacks: [], water: 0, weight: 0, exercises: [] };
@@ -115,21 +119,24 @@ const formatDateKey = (date) => { const year = date.getFullYear(); const month =
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 async function registerForPushNotificationsAsync() { if (Platform.OS === 'android') { await Notifications.setNotificationChannelAsync('default', { name: 'default', importance: Notifications.AndroidImportance.MAX, vibrationPattern: [0, 250, 250, 250], lightColor: '#FF231F7C', }); } if (Device.isDevice) { const { status: existingStatus } = await Notifications.getPermissionsAsync(); let finalStatus = existingStatus; if (existingStatus !== 'granted') { const { status } = await Notifications.requestPermissionsAsync(); finalStatus = status; } if (finalStatus !== 'granted') { console.log('User did not grant notification permissions.'); return; } } else { console.log('Must use physical device for Push Notifications'); } }
 
+// --- START: FIX --- تعديل مكون التقويم بالكامل ليعمل بشكل صحيح في RTL
 const DateNavigator = ({ selectedDate, onDateSelect, referenceToday, theme, t, isRTL, language }) => {
     const handlePrevWeek = () => { const newDate = new Date(selectedDate); newDate.setDate(selectedDate.getDate() - 7); onDateSelect(newDate); };
     const handleNextWeek = () => { const newDate = new Date(selectedDate); newDate.setDate(selectedDate.getDate() + 7); onDateSelect(newDate); };
     
     const weekDays = t('weekdays');
-
     const dates = [];
     
-    let dayIndex = selectedDate.getDay();
-    if (isRTL) {
-        dayIndex = (dayIndex + 1) % 7;
-    }
+    // في RTL, بداية الأسبوع هي السبت (index 6). في LTR, الأحد (index 0).
+    const startDayIndex = isRTL ? 6 : 0; 
+    const currentDayIndex = selectedDate.getDay();
 
     const startDate = new Date(selectedDate);
-    startDate.setDate(selectedDate.getDate() - dayIndex);
+    // حساب الفرق للوصول إلى بداية الأسبوع
+    let diff = currentDayIndex - startDayIndex;
+    if (diff < 0) { diff += 7; } // Ensure difference is positive
+    
+    startDate.setDate(selectedDate.getDate() - diff);
     startDate.setHours(0, 0, 0, 0);
 
     for (let i = 0; i < 7; i++) {
@@ -137,15 +144,17 @@ const DateNavigator = ({ selectedDate, onDateSelect, referenceToday, theme, t, i
         date.setDate(startDate.getDate() + i);
         dates.push(date);
     }
+
+    const displayDates = isRTL ? [...dates].reverse() : dates;
+
     const isSelected = (date) => date.toDateString() === selectedDate.toDateString();
     const monthYearString = selectedDate.toLocaleString(language === 'ar' ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' });
     
     const todayWeekStart = new Date(referenceToday);
-    let todayDayIndex = todayWeekStart.getDay();
-    if (isRTL) {
-        todayDayIndex = (todayDayIndex + 1) % 7;
-    }
-    todayWeekStart.setDate(referenceToday.getDate() - todayDayIndex);
+    const todayDayIndex = todayWeekStart.getDay();
+    let todayDiff = todayDayIndex - startDayIndex;
+    if (todayDiff < 0) { todayDiff += 7; }
+    todayWeekStart.setDate(referenceToday.getDate() - todayDiff);
     todayWeekStart.setHours(0, 0, 0, 0);
 
     const isNextDisabled = startDate.getTime() >= todayWeekStart.getTime();
@@ -154,27 +163,25 @@ const DateNavigator = ({ selectedDate, onDateSelect, referenceToday, theme, t, i
         <View style={styles.dateNavContainer(theme)}>
             <View style={styles.dateNavHeader(isRTL)}>
                 <TouchableOpacity onPress={handlePrevWeek} style={styles.arrowButton}>
-                    <Ionicons name={"chevron-back-outline"} size={24} color={theme.primary} style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }} />
+                    <Ionicons name={isRTL ? "chevron-forward-outline" : "chevron-back-outline"} size={24} color={theme.primary} />
                 </TouchableOpacity>
                 <Text style={styles.dateNavMonthText(theme)}>{monthYearString}</Text>
                 <TouchableOpacity onPress={handleNextWeek} style={styles.arrowButton} disabled={isNextDisabled}>
-                    <Ionicons name={"chevron-forward-outline"} size={24} color={isNextDisabled ? theme.disabled : theme.primary} style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }} />
+                    <Ionicons name={isRTL ? "chevron-back-outline" : "chevron-forward-outline"} size={24} color={isNextDisabled ? theme.disabled : theme.primary} />
                 </TouchableOpacity>
             </View>
-            <View style={styles.weekContainer(isRTL)}>
+            <View style={styles.weekContainer()}>
                 {weekDays.map((day, index) => <Text key={index} style={styles.weekDayText(theme)}>{day}</Text>)}
             </View>
             <View style={styles.datesContainer(isRTL)}>
-                {dates.map((date, index) => {
+                {displayDates.map((date, index) => {
                     const normalizedDate = new Date(date);
                     normalizedDate.setHours(0, 0, 0, 0);
                     const isFutureDate = normalizedDate > referenceToday;
                     const isDaySelected = isSelected(date);
                     return (
                         <TouchableOpacity key={index} onPress={() => onDateSelect(date)} disabled={isFutureDate}>
-                            {/* --- START: تعديل ستايل اليوم المحدد لضمان الشكل الدائري --- */}
                             <View style={[ styles.dateCircle, isDaySelected && { backgroundColor: theme.primary, borderRadius: 20 } ]}>
-                            {/* --- END: نهاية التعديل --- */}
                                 <Text style={[ styles.dateText(theme), isDaySelected && styles.activeText(theme), isFutureDate && styles.disabledDateText(theme) ]}>
                                     {date.getDate()}
                                 </Text>
@@ -186,9 +193,36 @@ const DateNavigator = ({ selectedDate, onDateSelect, referenceToday, theme, t, i
         </View>
     );
 };
+// --- END: FIX ---
 
 const SummaryCard = ({ data, dailyGoal, theme, t }) => { const SIZE = Dimensions.get('window').width * 0.5; const STROKE_WIDTH = 18; const INDICATOR_SIZE = 24; const RADIUS = SIZE / 2; const CENTER_RADIUS = RADIUS - STROKE_WIDTH / 2; const remaining = Math.round(dailyGoal - data.food + (data.exercise || 0)); const progressValue = dailyGoal > 0 ? Math.min(data.food / dailyGoal, 1) : 0; const animatedProgress = useSharedValue(0); useEffect(() => { animatedProgress.value = withTiming(progressValue, { duration: 1000 }); }, [progressValue]); const animatedPathProps = useAnimatedProps(() => { const angle = animatedProgress.value * 360; if (angle < 0.1) { return { d: '' }; } return { d: describeArc(SIZE / 2, SIZE / 2, CENTER_RADIUS, 0, angle), }; }); const indicatorAnimatedStyle = useAnimatedStyle(() => { const angleRad = (animatedProgress.value * 360 - 90) * (Math.PI / 180); const x = (SIZE / 2) + CENTER_RADIUS * Math.cos(angleRad); const y = (SIZE / 2) + CENTER_RADIUS * Math.sin(angleRad); return { transform: [{ translateX: x }, { translateY: y }], }; }); return (<View style={[styles.card(theme), { alignItems: 'center' }]}><View style={[styles.summaryCircleContainer, { width: SIZE, height: SIZE }]}><Svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}><Circle cx={SIZE / 2} cy={SIZE / 2} r={CENTER_RADIUS} stroke={theme.progressUnfilled} strokeWidth={STROKE_WIDTH} fill="transparent" /><AnimatedPath animatedProps={animatedPathProps} stroke={theme.primary} strokeWidth={STROKE_WIDTH} fill="transparent" strokeLinecap="round" /></Svg><Animated.View style={[styles.progressIndicatorDot(theme), { width: INDICATOR_SIZE, height: INDICATOR_SIZE, borderRadius: INDICATOR_SIZE / 2, marginLeft: -(INDICATOR_SIZE / 2), marginTop: -(INDICATOR_SIZE / 2), }, indicatorAnimatedStyle]} /><View style={styles.summaryTextContainer}><Text style={styles.remainingCaloriesText(theme)}>{remaining}</Text><Text style={styles.remainingLabel(theme)}>{t('remainingCalories')}</Text></View></View></View>); };
-const NutrientRow = ({ label, consumed, goal, color, unit = 'جم', isLimit = false, theme, isRTL }) => { const isOverLimit = isLimit && consumed > goal; const progressColor = isOverLimit ? theme.overLimit : color; return (<View style={styles.nutrientRowContainer}><View style={styles.nutrientRowHeader(isRTL)}><Text style={styles.nutrientRowLabel(theme)}>{label}</Text><Text style={styles.nutrientRowValue(theme)}>{Math.round(consumed)} / {goal} {unit}</Text></View><Progress.Bar progress={goal > 0 ? consumed / goal : 0} width={null} color={progressColor} unfilledColor={`${progressColor}30`} borderWidth={0} height={8} borderRadius={4} /></View>); };
+
+// --- START: FIX --- تعديل مكون شريط المغذيات لدعم RTL
+const NutrientRow = ({ label, consumed, goal, color, unit = 'جم', isLimit = false, theme, isRTL }) => { 
+    const isOverLimit = isLimit && consumed > goal; 
+    const progressColor = isOverLimit ? theme.overLimit : color; 
+    return (
+        <View style={styles.nutrientRowContainer}>
+            <View style={styles.nutrientRowHeader(isRTL)}>
+                <Text style={styles.nutrientRowLabel(theme)}>{label}</Text>
+                <Text style={styles.nutrientRowValue(theme)}>{Math.round(consumed)} / {goal} {unit}</Text>
+            </View>
+            <View style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
+                <Progress.Bar 
+                    progress={goal > 0 ? consumed / goal : 0} 
+                    width={null} 
+                    color={progressColor} 
+                    unfilledColor={`${progressColor}30`} 
+                    borderWidth={0} 
+                    height={8} 
+                    borderRadius={4} 
+                />
+            </View>
+        </View>
+    ); 
+};
+// --- END: FIX ---
+
 const NutrientSummaryCard = ({ data, theme, t, isRTL }) => { const nutrients = [{ label: t('protein'), consumed: data.protein.consumed, goal: data.protein.goal, color: theme.protein, unit: t('g_unit') }, { label: t('carbs'), consumed: data.carbs.consumed, goal: data.carbs.goal, color: theme.carbs, unit: t('g_unit') }, { label: t('fat'), consumed: data.fat.consumed, goal: data.fat.goal, color: theme.fat, unit: t('g_unit') }, { label: t('fiber'), consumed: data.fiber.consumed, goal: data.fiber.goal, color: theme.fiber, unit: t('g_unit') }, { label: t('sugar'), consumed: data.sugar.consumed, goal: data.sugar.goal, color: theme.sugar, unit: t('g_unit'), isLimit: true }, { label: t('sodium'), consumed: data.sodium.consumed, goal: data.sodium.goal, color: theme.sodium, unit: t('mg_unit'), isLimit: true },]; return (<View style={styles.card(theme)}>{nutrients.map((nutrient, index) => (<NutrientRow key={index} {...nutrient} theme={theme} isRTL={isRTL} />))}</View>); };
 const FoodLogItem = ({ item, theme, t, isRTL, showMacros = true }) => { let imageSource = null; if (item.capturedImageUri) { imageSource = { uri: item.capturedImageUri }; } else if (item.image && (item.image.startsWith('http') || item.image.startsWith('data:'))) { imageSource = { uri: item.image }; } else if (item.image) { imageSource = { uri: `https://spoonacular.com/cdn/ingredients_100x100/${item.image}` }; } return (<View style={styles.foodLogItemContainer(isRTL)}>{imageSource ? (<Image source={imageSource} style={styles.foodLogItemImage(isRTL)} />) : (<View style={styles.foodLogItemImagePlaceholder(theme, isRTL)}><Ionicons name="restaurant-outline" size={24} color={theme.primary} /></View>)}<View style={styles.foodLogItemDetails}><View style={styles.foodLogItemHeader(isRTL)}><Text style={styles.foodLogItemName(theme, isRTL)} numberOfLines={1}>{item.name}</Text><Text style={styles.foodLogItemCalories(theme, isRTL)}>{Math.round(item.calories)} {t('kcal_unit')}</Text></View>{showMacros && (<View style={styles.foodLogItemMacros(isRTL)}><Text style={styles.macroText(theme, isRTL)}><Text style={{ color: theme.protein }}>{t('p_macro')}</Text>{Math.round(item.p || 0)}g</Text><Text style={styles.macroText(theme, isRTL)}><Text style={{ color: theme.carbs }}>{t('c_macro')}</Text>{Math.round(item.c || 0)}g</Text><Text style={styles.macroText(theme, isRTL)}><Text style={{ color: theme.fat }}>{t('f_macro')}</Text>{Math.round(item.f || 0)}g</Text><Text style={styles.macroText(theme, isRTL)}><Text style={{ color: theme.fiber }}>{t('fib_macro')}</Text>{Math.round(item.fib || 0)}g</Text><Text style={styles.macroText(theme, isRTL)}><Text style={{ color: theme.sugar }}>{t('sug_macro')}</Text>{Math.round(item.sug || 0)}g</Text><Text style={styles.macroText(theme, isRTL)}><Text style={{ color: theme.sodium }}>{t('sod_macro')}</Text>{Math.round(item.sod || 0)}mg</Text></View>)}</View></View>); };
 const DailyFoodLog = ({ items, onPress, theme, t, isRTL }) => { const isEmpty = !items || items.length === 0; const MAX_PREVIEW_IMAGES = 4; const getImageSource = (item) => { if (item.capturedImageUri) return { uri: item.capturedImageUri }; if (item.image && (item.image.startsWith('http') || item.image.startsWith('data:'))) return { uri: item.image }; if (item.image) return { uri: `https://spoonacular.com/cdn/ingredients_100x100/${item.image}` }; return null; }; return (<TouchableOpacity onPress={onPress} activeOpacity={0.8}><View style={[styles.card(theme), styles.dailyLogCard]}><View style={styles.dailyLogContentContainer(isRTL)}><Text style={styles.sectionTitle(theme, isRTL)}>{t('dailyLogTitle')}</Text><View style={styles.dailyLogLeftContainer(isRTL)}>{!isEmpty ? (<View style={styles.foodPreviewContainer(isRTL)}>{items.length > MAX_PREVIEW_IMAGES && (<View style={[styles.previewCounterCircle(theme), { zIndex: 0 }]}><Text style={styles.previewCounterText(theme)}>+{items.length - MAX_PREVIEW_IMAGES}</Text></View>)}{items.slice(0, MAX_PREVIEW_IMAGES).map((item, index) => { const imageSource = getImageSource(item); const zIndex = MAX_PREVIEW_IMAGES - index; const marginStyle = { [isRTL ? 'marginRight' : 'marginLeft']: -18, zIndex }; return imageSource ? (<Image key={`${item.id}-${index}`} source={imageSource} style={[styles.previewImage(theme), marginStyle]} />) : (<View key={`${item.id}-${index}`} style={[styles.previewImage(theme), styles.previewImagePlaceholder(theme), marginStyle]}><Ionicons name="restaurant-outline" size={16} color={theme.primary} /></View>); })}</View>) : (<Ionicons name={isRTL ? "chevron-back-outline" : "chevron-forward-outline"} size={24} color={theme.textSecondary} />)}</View></View></View></TouchableOpacity>); };
@@ -530,7 +564,7 @@ function MainUIScreen({ appLanguage }) {
   );
 }
 
-const styles = { 
+const styles = StyleSheet.create({ 
     rootContainer: (theme) => ({ flex: 1, backgroundColor: theme.background }), 
     container: { paddingHorizontal: 20, paddingBottom: 80 }, 
     card: (theme) => ({ backgroundColor: theme.card, borderRadius: 20, padding: 20, marginBottom: 15 }), 
@@ -538,7 +572,9 @@ const styles = {
     dateNavHeader: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, paddingHorizontal: 5 }),
     arrowButton: { padding: 5 }, 
     dateNavMonthText: (theme) => ({ fontSize: 18, fontWeight: 'bold', color: theme.textPrimary }), 
-    weekContainer: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-around', marginBottom: 10 }), 
+    // --- START: FIX --- التأكد من أن ترتيب أسماء الأيام لا يتأثر بـ isRTL لأن البيانات تم تعديلها
+    weekContainer: () => ({ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 10 }), 
+    // --- END: FIX ---
     weekDayText: (theme) => ({ fontSize: 14, color: theme.textSecondary, fontWeight: '500', width: 40, textAlign: 'center' }), 
     datesContainer: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-around' }), 
     dateCircle: { width: 40, height: 40, borderRadius: 21, justifyContent: 'center', alignItems: 'center' },
@@ -625,6 +661,6 @@ const styles = {
     previewImagePlaceholder: (theme) => ({ justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }), 
     previewCounterCircle: (theme) => ({ width: 38, height: 38, borderRadius: 19, backgroundColor: theme.progressUnfilled, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: theme.card, }), 
     previewCounterText: (theme) => ({ color: theme.primary, fontWeight: 'bold', fontSize: 12, }),
-};
+});
 
 export default MainUIScreen;
