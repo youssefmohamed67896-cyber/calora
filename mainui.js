@@ -91,7 +91,6 @@ TaskManager.defineTask(STEPS_NOTIFICATION_TASK, async () => {
 const lightTheme = { primary: '#388E3C', background: '#E8F5E9', card: '#FFFFFF', textPrimary: '#212121', textSecondary: '#757575', progressUnfilled: '#D6EAD7', disabled: '#BDBDBD', carbs: '#007BFF', protein: '#FF7043', fat: '#FFC107', fiber: '#4CAF50', sugar: '#9C27B0', sodium: '#2196F3', overLimit: '#D32F2F', tabBarBackground: '#FFFFFF', tabBarIndicator: '#4CAF50', tabBarIcon: '#222327', white: '#FFFFFF', readOnlyBanner: '#FFA000', indicatorDot: '#1B5E20', statusBar: 'dark-content', };
 const darkTheme = { primary: '#66BB6A', background: '#121212', card: '#1E1E1E', textPrimary: '#FFFFFF', textSecondary: '#B0B0B0', progressUnfilled: '#2C2C2C', disabled: '#424242', carbs: '#42A5F5', protein: '#FF8A65', fat: '#FFCA28', fiber: '#81C784', sugar: '#BA68C8', sodium: '#64B5F6', overLimit: '#EF9A9A', tabBarBackground: '#1E1E1E', tabBarIndicator: '#81C784', tabBarIcon: '#E0E0E0', white: '#FFFFFF', readOnlyBanner: '#D48604', indicatorDot: '#A5D6A7', statusBar: 'light-content', };
 
-// --- START: FIX --- تعديل ترتيب أيام الأسبوع للغة العربية
 const translations = {
     ar: {
         remainingCalories: 'سعر حراري متبقي', readOnlyBanner: 'أنت تعرض يوماً سابقاً. السجل للقراءة فقط.', mealSectionsTitle: 'أقسام الوجبات', mealSectionsDesc: 'هذا هو السجل التفصيلي لليوم.', breakfast: 'الفطور', lunch: 'الغداء', dinner: 'العشاء', snacks: 'وجبات خفيفة', add_to_meal: '+ أضف إلى {meal}', protein: 'بروتين', carbs: 'كربوهيدرات', fat: 'دهون', fiber: 'ألياف', sugar: 'سكر', sodium: 'صوديوم', g_unit: 'جم', mg_unit: 'مجم', kcal_unit: 'kcal', weight: 'الوزن', water: 'الماء', workouts: 'التمارين', steps: 'الخطوات', not_logged: 'لم يسجل', unsupported: 'غير مدعوم', kg_unit: 'كجم', burned_cal: 'سعر حراري', goal: 'الهدف: ', dailyLogTitle: 'سجل وجبات اليوم', add_to: 'إضافة إلى', search_placeholder: 'ابحث عن كشري، ملوخية، تفاح...', no_results: 'لا توجد نتائج بحث.', local_food: 'أكلة محلية 🇪🇬', error: 'خطأ', search_error_msg: 'الرجاء إدخال اسم طعام للبحث.', fetch_error_msg: 'حدث خطأ أثناء جلب تفاصيل الطعام.', save_error_msg: 'حدث خطأ أثناء حفظ البيانات.', diaryTab: 'يومياتي', reportsTab: 'تقارير', cameraTab: 'كاميرا', profileTab: 'حسابي', weightTrackerTitle: 'تتبع الوزن', waterTrackerTitle: 'تتبع الماء', workoutLogTitle: 'سجل التمارين', stepsReportTitle: 'تقرير الخطوات', foodLogDetailTitle: 'تفاصيل سجل الوجبات', 
@@ -106,7 +105,6 @@ const translations = {
         editProfile: 'Edit Profile', settings: 'Settings', about: 'About',
     }
 };
-// --- END: FIX ---
 
 const SPOONACULAR_API_KEY = '8752a2c73388456888fef7aac64bcba6';
 const NUTRIENT_GOALS = { fiber: 30, sugar: 50, sodium: 2300 };
@@ -119,7 +117,7 @@ const formatDateKey = (date) => { const year = date.getFullYear(); const month =
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 async function registerForPushNotificationsAsync() { if (Platform.OS === 'android') { await Notifications.setNotificationChannelAsync('default', { name: 'default', importance: Notifications.AndroidImportance.MAX, vibrationPattern: [0, 250, 250, 250], lightColor: '#FF231F7C', }); } if (Device.isDevice) { const { status: existingStatus } = await Notifications.getPermissionsAsync(); let finalStatus = existingStatus; if (existingStatus !== 'granted') { const { status } = await Notifications.requestPermissionsAsync(); finalStatus = status; } if (finalStatus !== 'granted') { console.log('User did not grant notification permissions.'); return; } } else { console.log('Must use physical device for Push Notifications'); } }
 
-// --- START: FIX --- تعديل مكون التقويم بالكامل ليعمل بشكل صحيح في RTL
+// --- START: FIX --- تم تعديل المكون بالكامل لدعم RTL بشكل صحيح ومحاذاة النص للمنتصف
 const DateNavigator = ({ selectedDate, onDateSelect, referenceToday, theme, t, isRTL, language }) => {
     const handlePrevWeek = () => { const newDate = new Date(selectedDate); newDate.setDate(selectedDate.getDate() - 7); onDateSelect(newDate); };
     const handleNextWeek = () => { const newDate = new Date(selectedDate); newDate.setDate(selectedDate.getDate() + 7); onDateSelect(newDate); };
@@ -127,14 +125,12 @@ const DateNavigator = ({ selectedDate, onDateSelect, referenceToday, theme, t, i
     const weekDays = t('weekdays');
     const dates = [];
     
-    // في RTL, بداية الأسبوع هي السبت (index 6). في LTR, الأحد (index 0).
     const startDayIndex = isRTL ? 6 : 0; 
     const currentDayIndex = selectedDate.getDay();
 
     const startDate = new Date(selectedDate);
-    // حساب الفرق للوصول إلى بداية الأسبوع
     let diff = currentDayIndex - startDayIndex;
-    if (diff < 0) { diff += 7; } // Ensure difference is positive
+    if (diff < 0) { diff += 7; }
     
     startDate.setDate(selectedDate.getDate() - diff);
     startDate.setHours(0, 0, 0, 0);
@@ -144,8 +140,9 @@ const DateNavigator = ({ selectedDate, onDateSelect, referenceToday, theme, t, i
         date.setDate(startDate.getDate() + i);
         dates.push(date);
     }
-
-    const displayDates = isRTL ? [...dates].reverse() : dates;
+    
+    // --- FIX: Logic for displaying dates in RTL was corrected. No data reversal needed if style handles it.
+    const displayDates = dates;
 
     const isSelected = (date) => date.toDateString() === selectedDate.toDateString();
     const monthYearString = selectedDate.toLocaleString(language === 'ar' ? 'ar-EG' : 'en-US', { month: 'long', year: 'numeric' });
@@ -170,7 +167,7 @@ const DateNavigator = ({ selectedDate, onDateSelect, referenceToday, theme, t, i
                     <Ionicons name={isRTL ? "chevron-back-outline" : "chevron-forward-outline"} size={24} color={isNextDisabled ? theme.disabled : theme.primary} />
                 </TouchableOpacity>
             </View>
-            <View style={styles.weekContainer()}>
+            <View style={styles.weekContainer(isRTL)}>
                 {weekDays.map((day, index) => <Text key={index} style={styles.weekDayText(theme)}>{day}</Text>)}
             </View>
             <View style={styles.datesContainer(isRTL)}>
@@ -197,15 +194,25 @@ const DateNavigator = ({ selectedDate, onDateSelect, referenceToday, theme, t, i
 
 const SummaryCard = ({ data, dailyGoal, theme, t }) => { const SIZE = Dimensions.get('window').width * 0.5; const STROKE_WIDTH = 18; const INDICATOR_SIZE = 24; const RADIUS = SIZE / 2; const CENTER_RADIUS = RADIUS - STROKE_WIDTH / 2; const remaining = Math.round(dailyGoal - data.food + (data.exercise || 0)); const progressValue = dailyGoal > 0 ? Math.min(data.food / dailyGoal, 1) : 0; const animatedProgress = useSharedValue(0); useEffect(() => { animatedProgress.value = withTiming(progressValue, { duration: 1000 }); }, [progressValue]); const animatedPathProps = useAnimatedProps(() => { const angle = animatedProgress.value * 360; if (angle < 0.1) { return { d: '' }; } return { d: describeArc(SIZE / 2, SIZE / 2, CENTER_RADIUS, 0, angle), }; }); const indicatorAnimatedStyle = useAnimatedStyle(() => { const angleRad = (animatedProgress.value * 360 - 90) * (Math.PI / 180); const x = (SIZE / 2) + CENTER_RADIUS * Math.cos(angleRad); const y = (SIZE / 2) + CENTER_RADIUS * Math.sin(angleRad); return { transform: [{ translateX: x }, { translateY: y }], }; }); return (<View style={[styles.card(theme), { alignItems: 'center' }]}><View style={[styles.summaryCircleContainer, { width: SIZE, height: SIZE }]}><Svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}><Circle cx={SIZE / 2} cy={SIZE / 2} r={CENTER_RADIUS} stroke={theme.progressUnfilled} strokeWidth={STROKE_WIDTH} fill="transparent" /><AnimatedPath animatedProps={animatedPathProps} stroke={theme.primary} strokeWidth={STROKE_WIDTH} fill="transparent" strokeLinecap="round" /></Svg><Animated.View style={[styles.progressIndicatorDot(theme), { width: INDICATOR_SIZE, height: INDICATOR_SIZE, borderRadius: INDICATOR_SIZE / 2, marginLeft: -(INDICATOR_SIZE / 2), marginTop: -(INDICATOR_SIZE / 2), }, indicatorAnimatedStyle]} /><View style={styles.summaryTextContainer}><Text style={styles.remainingCaloriesText(theme)}>{remaining}</Text><Text style={styles.remainingLabel(theme)}>{t('remainingCalories')}</Text></View></View></View>); };
 
-// --- START: FIX --- تعديل مكون شريط المغذيات لدعم RTL
 const NutrientRow = ({ label, consumed, goal, color, unit = 'جم', isLimit = false, theme, isRTL }) => { 
     const isOverLimit = isLimit && consumed > goal; 
-    const progressColor = isOverLimit ? theme.overLimit : color; 
+    const progressColor = isOverLimit ? theme.overLimit : color;
+    const valueText = `${Math.round(consumed)} / ${goal} ${unit}`;
+
     return (
         <View style={styles.nutrientRowContainer}>
             <View style={styles.nutrientRowHeader(isRTL)}>
-                <Text style={styles.nutrientRowLabel(theme)}>{label}</Text>
-                <Text style={styles.nutrientRowValue(theme)}>{Math.round(consumed)} / {goal} {unit}</Text>
+                {isRTL ? (
+                    <>
+                        <Text style={styles.nutrientRowValue(theme)}>{valueText}</Text>
+                        <Text style={styles.nutrientRowLabel(theme)}>{label}</Text>
+                    </>
+                ) : (
+                    <>
+                        <Text style={styles.nutrientRowLabel(theme)}>{label}</Text>
+                        <Text style={styles.nutrientRowValue(theme)}>{valueText}</Text>
+                    </>
+                )}
             </View>
             <View style={{ transform: [{ scaleX: isRTL ? -1 : 1 }] }}>
                 <Progress.Bar 
@@ -221,7 +228,6 @@ const NutrientRow = ({ label, consumed, goal, color, unit = 'جم', isLimit = fa
         </View>
     ); 
 };
-// --- END: FIX ---
 
 const NutrientSummaryCard = ({ data, theme, t, isRTL }) => { const nutrients = [{ label: t('protein'), consumed: data.protein.consumed, goal: data.protein.goal, color: theme.protein, unit: t('g_unit') }, { label: t('carbs'), consumed: data.carbs.consumed, goal: data.carbs.goal, color: theme.carbs, unit: t('g_unit') }, { label: t('fat'), consumed: data.fat.consumed, goal: data.fat.goal, color: theme.fat, unit: t('g_unit') }, { label: t('fiber'), consumed: data.fiber.consumed, goal: data.fiber.goal, color: theme.fiber, unit: t('g_unit') }, { label: t('sugar'), consumed: data.sugar.consumed, goal: data.sugar.goal, color: theme.sugar, unit: t('g_unit'), isLimit: true }, { label: t('sodium'), consumed: data.sodium.consumed, goal: data.sodium.goal, color: theme.sodium, unit: t('mg_unit'), isLimit: true },]; return (<View style={styles.card(theme)}>{nutrients.map((nutrient, index) => (<NutrientRow key={index} {...nutrient} theme={theme} isRTL={isRTL} />))}</View>); };
 const FoodLogItem = ({ item, theme, t, isRTL, showMacros = true }) => { let imageSource = null; if (item.capturedImageUri) { imageSource = { uri: item.capturedImageUri }; } else if (item.image && (item.image.startsWith('http') || item.image.startsWith('data:'))) { imageSource = { uri: item.image }; } else if (item.image) { imageSource = { uri: `https://spoonacular.com/cdn/ingredients_100x100/${item.image}` }; } return (<View style={styles.foodLogItemContainer(isRTL)}>{imageSource ? (<Image source={imageSource} style={styles.foodLogItemImage(isRTL)} />) : (<View style={styles.foodLogItemImagePlaceholder(theme, isRTL)}><Ionicons name="restaurant-outline" size={24} color={theme.primary} /></View>)}<View style={styles.foodLogItemDetails}><View style={styles.foodLogItemHeader(isRTL)}><Text style={styles.foodLogItemName(theme, isRTL)} numberOfLines={1}>{item.name}</Text><Text style={styles.foodLogItemCalories(theme, isRTL)}>{Math.round(item.calories)} {t('kcal_unit')}</Text></View>{showMacros && (<View style={styles.foodLogItemMacros(isRTL)}><Text style={styles.macroText(theme, isRTL)}><Text style={{ color: theme.protein }}>{t('p_macro')}</Text>{Math.round(item.p || 0)}g</Text><Text style={styles.macroText(theme, isRTL)}><Text style={{ color: theme.carbs }}>{t('c_macro')}</Text>{Math.round(item.c || 0)}g</Text><Text style={styles.macroText(theme, isRTL)}><Text style={{ color: theme.fat }}>{t('f_macro')}</Text>{Math.round(item.f || 0)}g</Text><Text style={styles.macroText(theme, isRTL)}><Text style={{ color: theme.fiber }}>{t('fib_macro')}</Text>{Math.round(item.fib || 0)}g</Text><Text style={styles.macroText(theme, isRTL)}><Text style={{ color: theme.sugar }}>{t('sug_macro')}</Text>{Math.round(item.sug || 0)}g</Text><Text style={styles.macroText(theme, isRTL)}><Text style={{ color: theme.sodium }}>{t('sod_macro')}</Text>{Math.round(item.sod || 0)}mg</Text></View>)}</View></View>); };
@@ -569,14 +575,34 @@ const styles = StyleSheet.create({
     container: { paddingHorizontal: 20, paddingBottom: 80 }, 
     card: (theme) => ({ backgroundColor: theme.card, borderRadius: 20, padding: 20, marginBottom: 15 }), 
     dateNavContainer: (theme) => ({ marginVertical: 10, backgroundColor: theme.card, borderRadius: 20, paddingVertical: 15, paddingHorizontal: 10 }), 
-    dateNavHeader: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, paddingHorizontal: 5 }),
+    // --- START: FIX --- تم تعديل تنسيق رأس التقويم لمحاذاة النص للمنتصف
+    dateNavHeader: (isRTL) => ({
+        flexDirection: isRTL ? 'row-reverse' : 'row',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        marginBottom: 15,
+        paddingHorizontal: 5,
+    }),
     arrowButton: { padding: 5 }, 
-    dateNavMonthText: (theme) => ({ fontSize: 18, fontWeight: 'bold', color: theme.textPrimary }), 
-    // --- START: FIX --- التأكد من أن ترتيب أسماء الأيام لا يتأثر بـ isRTL لأن البيانات تم تعديلها
-    weekContainer: () => ({ flexDirection: 'row', justifyContent: 'space-around', marginBottom: 10 }), 
-    // --- END: FIX ---
+    dateNavMonthText: (theme) => ({
+        flex: 1,
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: theme.textPrimary,
+        textAlign: 'center',
+        marginHorizontal: 10,
+    }), 
+    weekContainer: (isRTL) => ({
+        flexDirection: isRTL ? 'row-reverse' : 'row',
+        justifyContent: 'space-around',
+        marginBottom: 10
+    }),
     weekDayText: (theme) => ({ fontSize: 14, color: theme.textSecondary, fontWeight: '500', width: 40, textAlign: 'center' }), 
-    datesContainer: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-around' }), 
+    datesContainer: (isRTL) => ({
+        flexDirection: isRTL ? 'row-reverse' : 'row',
+        justifyContent: 'space-around'
+    }), 
+    // --- END: FIX ---
     dateCircle: { width: 40, height: 40, borderRadius: 21, justifyContent: 'center', alignItems: 'center' },
     dateText: (theme) => ({ fontSize: 16, color: theme.textPrimary, fontWeight: '600' }), 
     activeText: (theme) => ({ color: theme.white }), 
