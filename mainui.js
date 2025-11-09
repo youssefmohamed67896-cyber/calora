@@ -117,7 +117,6 @@ const formatDateKey = (date) => { const year = date.getFullYear(); const month =
 const AnimatedPath = Animated.createAnimatedComponent(Path);
 async function registerForPushNotificationsAsync() { if (Platform.OS === 'android') { await Notifications.setNotificationChannelAsync('default', { name: 'default', importance: Notifications.AndroidImportance.MAX, vibrationPattern: [0, 250, 250, 250], lightColor: '#FF231F7C', }); } if (Device.isDevice) { const { status: existingStatus } = await Notifications.getPermissionsAsync(); let finalStatus = existingStatus; if (existingStatus !== 'granted') { const { status } = await Notifications.requestPermissionsAsync(); finalStatus = status; } if (finalStatus !== 'granted') { console.log('User did not grant notification permissions.'); return; } } else { console.log('Must use physical device for Push Notifications'); } }
 
-// --- START: FIX --- تم تعديل المكون بالكامل لدعم RTL بشكل صحيح ومحاذاة النص للمنتصف
 const DateNavigator = ({ selectedDate, onDateSelect, referenceToday, theme, t, isRTL, language }) => {
     const handlePrevWeek = () => { const newDate = new Date(selectedDate); newDate.setDate(selectedDate.getDate() - 7); onDateSelect(newDate); };
     const handleNextWeek = () => { const newDate = new Date(selectedDate); newDate.setDate(selectedDate.getDate() + 7); onDateSelect(newDate); };
@@ -141,7 +140,6 @@ const DateNavigator = ({ selectedDate, onDateSelect, referenceToday, theme, t, i
         dates.push(date);
     }
     
-    // --- FIX: Logic for displaying dates in RTL was corrected. No data reversal needed if style handles it.
     const displayDates = dates;
 
     const isSelected = (date) => date.toDateString() === selectedDate.toDateString();
@@ -190,7 +188,6 @@ const DateNavigator = ({ selectedDate, onDateSelect, referenceToday, theme, t, i
         </View>
     );
 };
-// --- END: FIX ---
 
 const SummaryCard = ({ data, dailyGoal, theme, t }) => { const SIZE = Dimensions.get('window').width * 0.5; const STROKE_WIDTH = 18; const INDICATOR_SIZE = 24; const RADIUS = SIZE / 2; const CENTER_RADIUS = RADIUS - STROKE_WIDTH / 2; const remaining = Math.round(dailyGoal - data.food + (data.exercise || 0)); const progressValue = dailyGoal > 0 ? Math.min(data.food / dailyGoal, 1) : 0; const animatedProgress = useSharedValue(0); useEffect(() => { animatedProgress.value = withTiming(progressValue, { duration: 1000 }); }, [progressValue]); const animatedPathProps = useAnimatedProps(() => { const angle = animatedProgress.value * 360; if (angle < 0.1) { return { d: '' }; } return { d: describeArc(SIZE / 2, SIZE / 2, CENTER_RADIUS, 0, angle), }; }); const indicatorAnimatedStyle = useAnimatedStyle(() => { const angleRad = (animatedProgress.value * 360 - 90) * (Math.PI / 180); const x = (SIZE / 2) + CENTER_RADIUS * Math.cos(angleRad); const y = (SIZE / 2) + CENTER_RADIUS * Math.sin(angleRad); return { transform: [{ translateX: x }, { translateY: y }], }; }); return (<View style={[styles.card(theme), { alignItems: 'center' }]}><View style={[styles.summaryCircleContainer, { width: SIZE, height: SIZE }]}><Svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}><Circle cx={SIZE / 2} cy={SIZE / 2} r={CENTER_RADIUS} stroke={theme.progressUnfilled} strokeWidth={STROKE_WIDTH} fill="transparent" /><AnimatedPath animatedProps={animatedPathProps} stroke={theme.primary} strokeWidth={STROKE_WIDTH} fill="transparent" strokeLinecap="round" /></Svg><Animated.View style={[styles.progressIndicatorDot(theme), { width: INDICATOR_SIZE, height: INDICATOR_SIZE, borderRadius: INDICATOR_SIZE / 2, marginLeft: -(INDICATOR_SIZE / 2), marginTop: -(INDICATOR_SIZE / 2), }, indicatorAnimatedStyle]} /><View style={styles.summaryTextContainer}><Text style={styles.remainingCaloriesText(theme)}>{remaining}</Text><Text style={styles.remainingLabel(theme)}>{t('remainingCalories')}</Text></View></View></View>); };
 
@@ -354,7 +351,9 @@ const MagicLineTabBar = ({ state, descriptors, navigation, theme, t, isRTL }) =>
     }, []));
 
     const indicatorAnimatedStyle = useAnimatedStyle(() => ({ transform: [{ translateX: translateX.value }] }));
-    const routes = isRTL ? [...state.routes].reverse() : state.routes;
+    
+    // Using state.routes directly works for both LTR and RTL (when handled by Flexbox)
+    const routes = state.routes;
 
     return (
         <View style={styles.tabBarContainer(theme)}>
@@ -501,7 +500,12 @@ function MainUIScreen({ appLanguage }) {
   
   useEffect(() => { 
     setLanguage(appLanguage); 
-    setIsRTL(appLanguage === 'ar'); 
+    // --- START: MODIFICATION TO FORCE LTR ---
+    // This line is changed to always set isRTL to false.
+    // This will make the entire app, including the Arabic version, render in LTR mode.
+    setIsRTL(false); 
+    // Original line was: setIsRTL(appLanguage === 'ar');
+    // --- END: MODIFICATION ---
   }, [appLanguage]);
 
   const handleThemeChange = async (isDark) => {
@@ -575,7 +579,6 @@ const styles = StyleSheet.create({
     container: { paddingHorizontal: 20, paddingBottom: 80 }, 
     card: (theme) => ({ backgroundColor: theme.card, borderRadius: 20, padding: 20, marginBottom: 15 }), 
     dateNavContainer: (theme) => ({ marginVertical: 10, backgroundColor: theme.card, borderRadius: 20, paddingVertical: 15, paddingHorizontal: 10 }), 
-    // --- START: FIX --- تم تعديل تنسيق رأس التقويم لمحاذاة النص للمنتصف
     dateNavHeader: (isRTL) => ({
         flexDirection: isRTL ? 'row-reverse' : 'row',
         justifyContent: 'space-between',
@@ -602,7 +605,6 @@ const styles = StyleSheet.create({
         flexDirection: isRTL ? 'row-reverse' : 'row',
         justifyContent: 'space-around'
     }), 
-    // --- END: FIX ---
     dateCircle: { width: 40, height: 40, borderRadius: 21, justifyContent: 'center', alignItems: 'center' },
     dateText: (theme) => ({ fontSize: 16, color: theme.textPrimary, fontWeight: '600' }), 
     activeText: (theme) => ({ color: theme.white }), 
