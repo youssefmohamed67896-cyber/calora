@@ -10,7 +10,7 @@ jobs:
   build:
     runs-on: ubuntu-latest
     steps:
-      # 1. يسحب الكود (ومعه فولدر android الجاهز)
+      # 1. يسحب الكود
       - name: Checkout repository
         uses: actions/checkout@v4
 
@@ -31,11 +31,11 @@ jobs:
       - name: Install dependencies
         run: npm install
 
-      # 5. ((((  الخطوة الجديدة والأساسية لحل المشكلة  ))))
-      # يضيف إعداد hermesEnabled لملف الإعدادات
-      - name: Add hermesEnabled flag to gradle.properties
-        run: echo "hermesEnabled=true" >> android/gradle.properties
-
+      # 5. ✅✅✅ الخطوة الجديدة والأساسية لحل المشكلة ✅✅✅
+      # هذه الخطوة تقوم بتحويل إعدادات app.json إلى ملفات أندرويد أصلية
+      - name: Generate native Android files
+        run: npx expo prebuild --platform android --no-install
+      
       # 6. يرجع ملف التوقيع
       - name: Decode Keystore
         run: echo "${{ secrets.ANDROID_KEYSTORE_BASE64 }}" | base64 --decode > ./android/my-release-key.keystore
