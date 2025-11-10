@@ -48,7 +48,18 @@
     },
     "plugins": [
       "expo-font",
-      "expo-build-properties",
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "kotlinVersion": "1.8.10",
+            "extraGradleProperties": {
+              "org.gradle.jvmargs": "-Xmx4g",
+              "android.jetifier.enabled": "true"
+            }
+          }
+        }
+      ],
       [
         "expo-camera",
         {
@@ -56,7 +67,8 @@
           "microphonePermission": "Allow Calora AI to access your microphone for camera features."
         }
       ],
-      "react-native-google-fit"
+      "react-native-google-fit",
+      "./plugins/withForceRtl.js"
     ],
     "extra": {
       "eas": {
