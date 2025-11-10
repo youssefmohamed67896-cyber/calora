@@ -1,3 +1,4 @@
+// setting.js - الكود الكامل والمعدل
 import React, { useState, useRef, useEffect } from 'react';
 import {
   View, Text, StyleSheet, ScrollView, TouchableOpacity, Alert, SafeAreaView,
@@ -196,12 +197,9 @@ const SettingsScreen = ({ navigation, onThemeChange, appLanguage }) => {
       const savedTheme = await AsyncStorage.getItem('isDarkMode');
       setIsDarkMode(savedTheme === 'true');
 
-      const checkAuthStatus = async () => {
-          const isAuth = GoogleFit.isAuthorized || false;
-          setIsGoogleFitConnected(isAuth);
-          await AsyncStorage.setItem('isGoogleFitConnected', String(isAuth));
-      };
-      checkAuthStatus();
+      // ✅ التحقق من حالة الاتصال بـ Google Fit من AsyncStorage
+      const isConnected = await AsyncStorage.getItem('isGoogleFitConnected') === 'true';
+      setIsGoogleFitConnected(isConnected);
 
       const savedRemindersRaw = await AsyncStorage.getItem('reminderSettings');
       if (savedRemindersRaw) {
@@ -239,11 +237,7 @@ const SettingsScreen = ({ navigation, onThemeChange, appLanguage }) => {
         } else if (settings.time) {
             if (!data) continue;
             let messageList;
-            if (data.meal_reminders && data.meal_reminders[key]) {
-                messageList = data.meal_reminders[key];
-            } else if (data[key]) {
-                messageList = data[key];
-            }
+            if (data.meal_reminders && data.meal_reminders[key]) { messageList = data.meal_reminders[key]; } else if (data[key]) { messageList = data[key]; }
             if (!messageList || messageList.length === 0) continue;
             const [hour, minute] = settings.time.split(':').map(Number);
             const isWeekly = key === 'weighIn';
@@ -259,52 +253,33 @@ const SettingsScreen = ({ navigation, onThemeChange, appLanguage }) => {
                     triggerDate.setDate(new Date().getDate() + i);
                 }
                 triggerDate.setHours(hour, minute, 0, 0);
-                if (triggerDate < new Date()) {
-                     if (isWeekly) continue;
-                     triggerDate.setDate(triggerDate.getDate() + 7);
-                }
+                if (triggerDate < new Date()) { if (isWeekly) continue; triggerDate.setDate(triggerDate.getDate() + 7); }
                 await Notifications.scheduleNotificationAsync({ content: { title: notificationTitle, body: messageBody }, trigger: triggerDate, identifier: `reminder_${key}_${i}` });
             }
         }
     }
   };
 
-  // ✅✅✅ --- الكود المعدل هنا --- ✅✅✅
   const handleToggleStepsReminder = async () => {
-    // 1. تحديث الحالة في الواجهة والحفظ فوراً
     const newReminders = { ...reminders, stepsGoal: { enabled: !reminders.stepsGoal.enabled } };
     setReminders(newReminders);
     await AsyncStorage.setItem('reminderSettings', JSON.stringify(newReminders));
-
-    // لو المستخدم بيحاول يفعل الميزة
     if (newReminders.stepsGoal.enabled) {
-        // 2. تحقق من البيئة
         if (!TaskManager || typeof TaskManager.registerTaskAsync !== 'function') {
-            // 3. اعرض رسالة الخطأ، لكن **لا تلغي تفعيل الزر**. خليه مفعل.
-            Alert.alert(
-                t('snackFeatureAlertTitle'), 
-                t('snackTaskManagerMessage')
-            );
-            return; // اخرج من الدالة
+            Alert.alert(t('snackFeatureAlertTitle'), t('snackTaskManagerMessage'));
+            return;
         }
-
-        // لو البيئة صح، كمل عادي واطلب الأذونات وسجل المهمة
         const { status: notificationStatus } = await Notifications.requestPermissionsAsync();
         const { status: pedometerStatus } = await Pedometer.requestPermissionsAsync();
-
         if (notificationStatus !== 'granted' || pedometerStatus !== 'granted') {
             Alert.alert(t('notificationsPermissionTitle'), t('notificationsPermissionMessage'));
-            // لو رفض الأذونات، هنا لازم نلغي التفعيل
             const revertedState = { ...newReminders, stepsGoal: { enabled: false } };
             setReminders(revertedState);
             await AsyncStorage.setItem('reminderSettings', JSON.stringify(revertedState));
             return;
         }
-
         await TaskManager.registerTaskAsync(STEPS_NOTIFICATION_TASK, { minimumInterval: 15 * 60 });
         Alert.alert(t('remindersSaved'));
-
-    // لو المستخدم بيقفل الميزة
     } else {
         if (TaskManager && typeof TaskManager.unregisterTaskAsync === 'function') {
             await TaskManager.unregisterTaskAsync(STEPS_NOTIFICATION_TASK);
@@ -314,10 +289,7 @@ const SettingsScreen = ({ navigation, onThemeChange, appLanguage }) => {
   };
 
   const showTimePicker = (key) => {
-    if (Platform.OS === 'web') {
-        Alert.alert(t('snackFeatureAlertTitle'), t('snackTimePickerMessage'));
-        return;
-    }
+    if (Platform.OS === 'web') { Alert.alert(t('snackFeatureAlertTitle'), t('snackTimePickerMessage')); return; }
     const reminderTime = reminders[key].time;
     const [hour, minute] = reminderTime.split(':').map(Number);
     const newTempTime = new Date();
@@ -326,7 +298,6 @@ const SettingsScreen = ({ navigation, onThemeChange, appLanguage }) => {
     setCurrentReminderKey(key);
     setTimePickerVisible(true);
   };
-
   const handleTimeChange = async (event, selectedDate) => {
       setTimePickerVisible(Platform.OS === 'ios');
       if (event.type === 'dismissed' || !selectedDate) return;
@@ -341,7 +312,6 @@ const SettingsScreen = ({ navigation, onThemeChange, appLanguage }) => {
         setTempTime(newTime);
       }
   };
-
   const saveIosTime = async () => {
       const formattedTime = formatTime(tempTime);
       const updatedReminders = { ...reminders, [currentReminderKey]: { ...reminders[currentReminderKey], time: formattedTime } };
@@ -350,58 +320,27 @@ const SettingsScreen = ({ navigation, onThemeChange, appLanguage }) => {
       await scheduleAllNotifications(updatedReminders, activeLanguage);
       setTimePickerVisible(false);
   };
-
   const handleToggleReminder = async (key) => {
-    if (key === 'stepsGoal') {
-      await handleToggleStepsReminder();
-      return;
-    }
+    if (key === 'stepsGoal') { await handleToggleStepsReminder(); return; }
     const newReminders = { ...reminders, [key]: { ...reminders[key], enabled: !reminders[key].enabled } };
     setReminders(newReminders);
     await AsyncStorage.setItem('reminderSettings', JSON.stringify(newReminders));
     await scheduleAllNotifications(newReminders, activeLanguage);
     Alert.alert(t('remindersSaved'));
   };
-  
   const handleToggleDarkMode = (value) => {
     setIsDarkMode(value);
-    if (onThemeChange) {
-      onThemeChange(value);
-    } else {
-      AsyncStorage.setItem('isDarkMode', String(value)).catch(e => console.error(e));
-    }
+    if (onThemeChange) { onThemeChange(value); } else { AsyncStorage.setItem('isDarkMode', String(value)).catch(e => console.error(e)); }
   };
-
   const handleSaveLanguage = async () => {
-    if (activeLanguage === selectedLanguage) {
-      setCurrentView('main');
-      return;
-    }
+    if (activeLanguage === selectedLanguage) { setCurrentView('main'); return; }
     try {
       await AsyncStorage.setItem('appLanguage', selectedLanguage);
-      const isRTL = selectedLanguage === 'ar';
-      I18nManager.forceRTL(isRTL);
+      I18nManager.forceRTL(selectedLanguage === 'ar');
       Alert.alert( t('languageSaved', selectedLanguage), t('languageSettingsUpdated', selectedLanguage), [ { text: 'OK', onPress: () => { DevSettings.reload(); }, }, ], { cancelable: false });
-    } catch (e) {
-      console.error("Failed to save language settings.", e);
-      Alert.alert("Error", "Could not save language settings.");
-    }
+    } catch (e) { console.error("Failed to save language settings.", e); Alert.alert("Error", "Could not save language settings."); }
   };
-
-  const handleBackPress = () => {
-    if (currentView === 'language') {
-      setSelectedLanguage(activeLanguage); 
-      setCurrentView('main');
-      return;
-    }
-    if (currentView !== 'main') {
-      setCurrentView('main');
-      setExportDataContent('');
-    } else if(navigation.canGoBack()) {
-      navigation.goBack();
-    }
-  };
-
+  const handleBackPress = () => { if (currentView === 'language') { setSelectedLanguage(activeLanguage); setCurrentView('main'); return; } if (currentView !== 'main') { setCurrentView('main'); setExportDataContent(''); } else if(navigation.canGoBack()) { navigation.goBack(); } };
   const handlePrepareExportData = async () => {
       try {
           const keys = await AsyncStorage.getAllKeys();
@@ -409,41 +348,17 @@ const SettingsScreen = ({ navigation, onThemeChange, appLanguage }) => {
           const dataPairs = await AsyncStorage.multiGet(dateKeys);
           let allFoodItems = [];
           const mealTypes = ['breakfast', 'lunch', 'dinner', 'snacks'];
-          dataPairs.forEach(([date, dataString]) => {
-              if (dataString) {
-                  const dayData = JSON.parse(dataString);
-                  mealTypes.forEach(meal => {
-                      if (dayData[meal] && Array.isArray(dayData[meal])) {
-                          dayData[meal].forEach(item => allFoodItems.push({ date, meal, ...item }));
-                      }
-                  });
-              }
-          });
-          if (allFoodItems.length === 0) {
-              Alert.alert("No Data", "There is no food data to export.");
-              setExportDataContent('');
-              return;
-          }
+          dataPairs.forEach(([date, dataString]) => { if (dataString) { const dayData = JSON.parse(dataString); mealTypes.forEach(meal => { if (dayData[meal] && Array.isArray(dayData[meal])) { dayData[meal].forEach(item => allFoodItems.push({ date, meal, ...item })); } }); } });
+          if (allFoodItems.length === 0) { Alert.alert("No Data", "There is no food data to export."); setExportDataContent(''); return; }
           const header = "Date,Meal,Food Name,Quantity,Calories,Protein (g),Carbs (g),Fat (g)\n";
           const rows = allFoodItems.map(item => `${item.date},${item.meal},"${(item.name || '').replace(/"/g, '""')}",${item.quantity || ''},${item.calories || 0},${item.p || 0},${item.c || 0},${item.f || 0}`).join("\n");
           setExportDataContent(header + rows);
-      } catch (error) {
-          console.error("Export failed:", error);
-          Alert.alert('Error', 'Could not prepare data for export.');
-      }
+      } catch (error) { console.error("Export failed:", error); Alert.alert('Error', 'Could not prepare data for export.'); }
   };
-
-  const copyToClipboard = () => {
-      if (exportDataContent) {
-          Clipboard.setString(exportDataContent);
-          Alert.alert(t('copied'));
-      }
-  };
-
-  const handleDeleteAccount = () => {
-      Alert.alert(t('deleteAccountTitle'), t('deleteAccountMessage'), [{ text: t('cancel'), style: 'cancel' }, { text: t('delete'), style: 'destructive', onPress: () => console.log("Account deleted") }]);
-  };
-
+  const copyToClipboard = () => { if (exportDataContent) { Clipboard.setString(exportDataContent); Alert.alert(t('copied')); } };
+  const handleDeleteAccount = () => { Alert.alert(t('deleteAccountTitle'), t('deleteAccountMessage'), [{ text: t('cancel'), style: 'cancel' }, { text: t('delete'), style: 'destructive', onPress: () => console.log("Account deleted") }]); };
+  
+  // ✅ ===== تعديل دوال الاتصال بـ Google Fit ===== ✅
   const handleConnectGoogleFit = async () => {
     setIsConnecting(true);
     const options = { scopes: [ Scopes.FITNESS_ACTIVITY_READ, Scopes.FITNESS_BODY_READ, Scopes.FITNESS_NUTRITION_READ, ], };
@@ -451,25 +366,28 @@ const SettingsScreen = ({ navigation, onThemeChange, appLanguage }) => {
         const authResult = await GoogleFit.authorize(options);
         if (authResult.success) {
             setIsGoogleFitConnected(true);
-            await AsyncStorage.setItem('isGoogleFitConnected', 'true');
+            await AsyncStorage.setItem('isGoogleFitConnected', 'true'); // <-- حفظ الحالة
             Alert.alert('Google Fit', t('connectionSuccess'));
         } else {
             console.log("AUTH_DENIED", authResult.message);
+            setIsGoogleFitConnected(false);
+            await AsyncStorage.setItem('isGoogleFitConnected', 'false'); // <-- حفظ الحالة
             Alert.alert('Google Fit', t('connectionFailed'));
         }
     } catch (error) {
         console.error("AUTH_ERROR", error);
+        setIsGoogleFitConnected(false);
+        await AsyncStorage.setItem('isGoogleFitConnected', 'false'); // <-- حفظ الحالة
         Alert.alert('Google Fit', t('connectionFailed'));
     } finally {
         setIsConnecting(false);
     }
   };
-
   const handleDisconnectGoogleFit = async () => {
     try {
         await GoogleFit.disconnect();
         setIsGoogleFitConnected(false);
-        await AsyncStorage.setItem('isGoogleFitConnected', 'false');
+        await AsyncStorage.setItem('isGoogleFitConnected', 'false'); // <-- حفظ الحالة
         Alert.alert("Google Fit", t('disconnectSuccess'));
     } catch (error) {
         console.error("DISCONNECT_ERROR", error);
@@ -494,93 +412,38 @@ const SettingsScreen = ({ navigation, onThemeChange, appLanguage }) => {
       );
     }
     if (currentView === 'language') { 
-        return (
-            <View style={{ paddingTop: 20 }}>
-                <LanguageSelectionItem label="English" isSelected={selectedLanguage === 'en'} onPress={() => setSelectedLanguage('en')} theme={theme} isRTL={isRTL} />
-                <LanguageSelectionItem label="العربية" isSelected={selectedLanguage === 'ar'} onPress={() => setSelectedLanguage('ar')} theme={theme} isRTL={isRTL} />
-            </View>
-        );
+        return ( <View style={{ paddingTop: 20 }}><LanguageSelectionItem label="English" isSelected={selectedLanguage === 'en'} onPress={() => setSelectedLanguage('en')} theme={theme} isRTL={isRTL} /><LanguageSelectionItem label="العربية" isSelected={selectedLanguage === 'ar'} onPress={() => setSelectedLanguage('ar')} theme={theme} isRTL={isRTL} /></View> );
     }
     if (currentView === 'export') { 
-        return (
-            <View style={{paddingHorizontal: 16, paddingTop: 20}}>
-                <Text style={[styles.exportDescription, { color: theme.secondaryText, textAlign: isRTL ? 'right' : 'left' }]}>
-                    {t('exportDataDescription')}
-                </Text>
-                <TouchableOpacity style={[styles.exportButton, { backgroundColor: theme.iconColor }]} onPress={handlePrepareExportData}>
-                    <Icon name="database-arrow-down-outline" size={22} color={theme.background} style={isRTL ? { marginLeft: 12 } : { marginRight: 12 }} />
-                    <Text style={[styles.exportButtonText, { color: theme.background }]}>{t('exportAllData')}</Text>
-                </TouchableOpacity>
-                {exportDataContent ? (
-                    <View>
-                        <TextInput style={[styles.dataBox, { color: theme.text, borderColor: theme.separator, backgroundColor: theme.surface }]} value={exportDataContent} multiline={true} editable={false} />
-                        <TouchableOpacity style={[styles.exportButton, { backgroundColor: '#4CAF50', marginTop: 10 }]} onPress={copyToClipboard}>
-                            <Icon name="content-copy" size={22} color={'#FFFFFF'} style={isRTL ? { marginLeft: 12 } : { marginRight: 12 }} />
-                            <Text style={[styles.exportButtonText, { color: '#FFFFFF' }]}>{t('copyToClipboard')}</Text>
-                        </TouchableOpacity>
-                    </View>
-                ) : null}
-            </View>
-        );
+        return ( <View style={{paddingHorizontal: 16, paddingTop: 20}}><Text style={[styles.exportDescription, { color: theme.secondaryText, textAlign: isRTL ? 'right' : 'left' }]}>{t('exportDataDescription')}</Text><TouchableOpacity style={[styles.exportButton, { backgroundColor: theme.iconColor }]} onPress={handlePrepareExportData}><Icon name="database-arrow-down-outline" size={22} color={theme.background} style={isRTL ? { marginLeft: 12 } : { marginRight: 12 }} /><Text style={[styles.exportButtonText, { color: theme.background }]}>{t('exportAllData')}</Text></TouchableOpacity>{exportDataContent ? ( <View><TextInput style={[styles.dataBox, { color: theme.text, borderColor: theme.separator, backgroundColor: theme.surface }]} value={exportDataContent} multiline={true} editable={false} /><TouchableOpacity style={[styles.exportButton, { backgroundColor: '#4CAF50', marginTop: 10 }]} onPress={copyToClipboard}><Icon name="content-copy" size={22} color={'#FFFFFF'} style={isRTL ? { marginLeft: 12 } : { marginRight: 12 }} /><Text style={[styles.exportButtonText, { color: '#FFFFFF' }]}>{t('copyToClipboard')}</Text></TouchableOpacity></View> ) : null}</View> );
     }
-    
     return (
         <>
             <SettingsToggleItem icon="theme-light-dark" label={t('darkMode')} value={isDarkMode} onValueChange={handleToggleDarkMode} theme={theme} isRTL={isRTL} />
             <SettingsActionItem icon="bell-outline" label={t('notifications')} onPress={() => setCurrentView('notifications')} theme={theme} isRTL={isRTL} />
             <SettingsActionItem icon="translate" label={t('language')} onPress={() => setCurrentView('language')} theme={theme} isRTL={isRTL} />
             <SettingsSectionHeader title={t('connectedApps')} theme={theme} isRTL={isRTL} />
-            <SettingsIntegrationItem 
-                icon="google-fit"
-                label={t('googleFit')}
-                isConnected={isGoogleFitConnected}
-                onConnect={handleConnectGoogleFit}
-                onDisconnect={handleDisconnectGoogleFit}
-                theme={theme}
-                isRTL={isRTL}
-                t={t}
-                isLoading={isConnecting}
-            />
+            <SettingsIntegrationItem icon="google-fit" label={t('googleFit')} isConnected={isGoogleFitConnected} onConnect={handleConnectGoogleFit} onDisconnect={handleDisconnectGoogleFit} theme={theme} isRTL={isRTL} t={t} isLoading={isConnecting} />
             <View style={{ height: 20 }} />
             <SettingsActionItem icon="export-variant" label={t('exportData')} onPress={() => setCurrentView('export')} theme={theme} isRTL={isRTL} />
             <SettingsActionItem icon="account-remove-outline" label={t('deleteAccount')} onPress={handleDeleteAccount} color={theme.danger} theme={theme} isRTL={isRTL} />
         </>
     );
   };
-
-  const getHeaderTitle = () => {
-    switch(currentView) {
-      case 'notifications': return t('notifications');
-      case 'language': return t('language');
-      case 'export': return t('exportData');
-      default: return t('settings');
-    }
-  };
-
+  const getHeaderTitle = () => { switch(currentView) { case 'notifications': return t('notifications'); case 'language': return t('language'); case 'export': return t('exportData'); default: return t('settings'); } };
   const headerAction = currentView === 'language' ? { label: t('save'), onPress: handleSaveLanguage } : null;
 
   return (
     <SafeAreaView style={[styles.container, { backgroundColor: theme.surface }]}>
       <StatusBar barStyle={theme.statusBar} backgroundColor={theme.surface} />
       <ScreenHeader title={getHeaderTitle()} onBackPress={handleBackPress} theme={theme} isRTL={isRTL} action={headerAction} />
-      <ScrollView 
-        style={{backgroundColor: theme.background}} 
-        contentContainerStyle={[
-          styles.scrollContent,
-          { paddingTop: currentView === 'main' ? 20 : 0 }
-        ]}
-      >
+      <ScrollView style={{backgroundColor: theme.background}} contentContainerStyle={[ styles.scrollContent, { paddingTop: currentView === 'main' ? 20 : 0 } ]}>
         {renderContent()}
       </ScrollView>
       {isTimePickerVisible && Platform.OS !== 'web' && (Platform.OS === 'ios' ? (
           <Modal transparent={true} animationType="slide" visible={isTimePickerVisible} onRequestClose={() => setTimePickerVisible(false)}>
               <TouchableOpacity style={styles.modalBackdrop} activeOpacity={1} onPress={() => setTimePickerVisible(false)} />
-              <View style={[styles.modalContent, {backgroundColor: theme.surface}]}>
-                  <DateTimePicker value={tempTime} mode="time" is24Hour={true} display="spinner" onChange={handleTimeChange} textColor={theme.text} />
-                  <TouchableOpacity style={styles.saveButton} onPress={saveIosTime}>
-                      <Text style={styles.saveButtonText}>{t('save')}</Text>
-                  </TouchableOpacity>
-              </View>
+              <View style={[styles.modalContent, {backgroundColor: theme.surface}]}><DateTimePicker value={tempTime} mode="time" is24Hour={true} display="spinner" onChange={handleTimeChange} textColor={theme.text} /><TouchableOpacity style={styles.saveButton} onPress={saveIosTime}><Text style={styles.saveButtonText}>{t('save')}</Text></TouchableOpacity></View>
           </Modal>
       ) : (
           <DateTimePicker value={tempTime} mode="time" is24Hour={true} display="default" onChange={handleTimeChange} />
@@ -613,27 +476,11 @@ const styles = StyleSheet.create({
   modalContent: { borderTopRightRadius: 20, borderTopLeftRadius: 20, padding: 20, position: 'absolute', bottom: 0, width: '100%' },
   saveButton: { backgroundColor: '#4CAF50', borderRadius: 10, padding: 15, alignItems: 'center', marginTop: 10 },
   saveButtonText: { color: 'white', fontSize: 16, fontWeight: 'bold' },
-  connectButton: {
-    paddingHorizontal: 16,
-    paddingVertical: 8,
-    borderRadius: 8,
-  },
-  connectButtonText: {
-    color: '#FFFFFF',
-    fontWeight: 'bold',
-    fontSize: 14,
-  },
-  connectedContainer: {
-    alignItems: 'flex-end',
-  },
-  connectedText: {
-    fontSize: 14,
-    fontWeight: 'bold',
-  },
-  disconnectText: {
-    fontSize: 12,
-    marginTop: 2,
-  },
+  connectButton: { paddingHorizontal: 16, paddingVertical: 8, borderRadius: 8, },
+  connectButtonText: { color: '#FFFFFF', fontWeight: 'bold', fontSize: 14, },
+  connectedContainer: { alignItems: 'flex-end', },
+  connectedText: { fontSize: 14, fontWeight: 'bold', },
+  disconnectText: { fontSize: 12, marginTop: 2, },
 });
 
 export default SettingsScreen;

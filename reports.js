@@ -1,9 +1,10 @@
+// reports.js - الكود الكامل والمعدل
 import React, { useState, useEffect, useCallback } from 'react';
 import { StyleSheet, View, Text, ScrollView, TouchableOpacity, Dimensions, ActivityIndicator, SafeAreaView, StatusBar } from 'react-native';
 import { LineChart, PieChart } from 'react-native-chart-kit';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { Ionicons } from '@expo/vector-icons';
-import { useFocusEffect } from '@react-navigation/native'; // استيراد useFocusEffect
+import { useFocusEffect } from '@react-navigation/native';
 
 const screenWidth = Dimensions.get('window').width;
 
@@ -31,14 +32,14 @@ const ReportsScreen = ({ appLanguage }) => {
 
     const t = (key) => translations[language]?.[key] || translations['en'][key];
 
-    // ✅ هذا الـ hook يضمن أن الشاشة تتحدث دائمًا عند تغيير اللغة من الإعدادات
     useEffect(() => {
         if (appLanguage) {
             setLanguage(appLanguage);
             setIsRTL(appLanguage === 'ar');
         }
     }, [appLanguage]);
-
+    
+    // ✅ ===== دالة تحميل البيانات (معدلة) ===== ✅
     const loadData = useCallback(async () => {
         setLoading(true);
         setSelectedWeightPoint(null);
@@ -56,7 +57,8 @@ const ReportsScreen = ({ appLanguage }) => {
             else if (period === '3months') startDate.setMonth(endDate.getMonth() - 3);
             startDate.setHours(0,0,0,0);
 
-            const weightHistoryJson = await AsyncStorage.getItem('weightHistory');
+            // قراءة البيانات من AsyncStorage التي تم تحديثها من الشاشات الأخرى
+            const weightHistoryJson = await AsyncStorage.getItem('weightHistory'); 
             const allWeightHistory = weightHistoryJson ? JSON.parse(weightHistoryJson) : [];
             const weightDataForPeriod = allWeightHistory
                 .filter(entry => new Date(entry.date) >= startDate && new Date(entry.date) <= endDate)
@@ -112,21 +114,17 @@ const ReportsScreen = ({ appLanguage }) => {
         } finally { 
             setLoading(false); 
         }
-    }, [period, language]); // ✅ أضفنا اللغة هنا كعامل مؤثر لإعادة التحميل
+    }, [period, language]);
 
-    // نستخدم useFocusEffect لاستدعاء loadData عند التركيز على الشاشة
+    // ✅ استخدام useFocusEffect لضمان تحديث البيانات عند العودة للشاشة
     useFocusEffect(
         useCallback(() => {
             loadData();
-        }, [loadData]) // يعتمد على الدالة التي بدورها تعتمد على اللغة والفترة
+        }, [loadData]) 
     );
     
     const handleWeightPointClick = (data) => {
-        if (selectedWeightPoint && selectedWeightPoint.index === data.index) {
-            setSelectedWeightPoint(null);
-        } else {
-            setSelectedWeightPoint(data);
-        }
+        if (selectedWeightPoint && selectedWeightPoint.index === data.index) { setSelectedWeightPoint(null); } else { setSelectedWeightPoint(data); }
     };
     
     const lineChartConfig = { backgroundGradientFrom: theme.card, backgroundGradientTo: theme.card, color: theme.chartColor, labelColor: theme.chartLabelColor, strokeWidth: 2, decimalPlaces: 1, propsForDots: { r: "5", strokeWidth: "2", stroke: theme.background } };
@@ -140,7 +138,6 @@ const ReportsScreen = ({ appLanguage }) => {
             <StatusBar barStyle={theme.statusBar} backgroundColor={theme.background} />
             <ScrollView showsVerticalScrollIndicator={false} contentContainerStyle={styles.scrollContainer}>
                 <Text style={styles.headerTitle(theme, isRTL)}>{t('title')}</Text>
-                
                 <View style={styles.filterContainer(isRTL, theme)}>
                     <TouchableOpacity onPress={() => setPeriod('week')} style={[styles.filterButton(theme), period === 'week' && styles.activeFilter(theme)]}><Text style={[styles.filterText(theme), period === 'week' && styles.activeFilterText(theme)]}>{t('filter7Days')}</Text></TouchableOpacity>
                     <View style={styles.separator(theme)} />
@@ -148,54 +145,16 @@ const ReportsScreen = ({ appLanguage }) => {
                     <View style={styles.separator(theme)} />
                     <TouchableOpacity onPress={() => setPeriod('3months')} style={[styles.filterButton(theme), period === '3months' && styles.activeFilter(theme)]}><Text style={[styles.filterText(theme), period === '3months' && styles.activeFilterText(theme)]}>{t('filter3Months')}</Text></TouchableOpacity>
                 </View>
-
                 <Card title={t('weightCardTitle')} theme={theme} isRTL={isRTL}>
                     <View>
-                        {reportData.weight.data.length > 1 ? (
-                            <LineChart
-                                key={chartKey}
-                                data={{ labels: reportData.weight.labels, datasets: [{ data: reportData.weight.data }] }}
-                                width={screenWidth - 70} height={220} yAxisSuffix={` ${t('weightUnit')}`} 
-                                chartConfig={lineChartConfig}
-                                withShadow={true}
-                                bezier onDataPointClick={handleWeightPointClick}
-                                yAxisLabel={isRTL ? '' : undefined} // إخفاء التسمية في RTL لمنع التداخل
-                                fromZero={true}
-                            />
-                        ) : (
-                            <View style={styles.emptyChart}><Ionicons name="stats-chart-outline" size={40} color={theme.textSecondary}/><Text style={styles.emptyChartText(theme)}>{t('weightEmptyText')}</Text></View>
-                        )}
-                        
-                        {selectedWeightPoint && (
-                            <View style={[styles.tooltipPositioner, { left: selectedWeightPoint.x, top: selectedWeightPoint.y }]}>
-                                <View style={styles.tooltipContainer}>
-                                    <View style={styles.tooltipBox(theme)}><View style={styles.tooltipContent}><Text style={styles.tooltipValue(theme)}>{selectedWeightPoint.value.toFixed(1)}</Text><Text style={styles.tooltipUnit(theme)}>{t('weightUnit')}</Text></View></View>
-                                    <View style={styles.tooltipArrow(theme)} />
-                                </View>
-                            </View>
-                        )}
+                        {reportData.weight.data.length > 1 ? ( <LineChart key={chartKey} data={{ labels: reportData.weight.labels, datasets: [{ data: reportData.weight.data }] }} width={screenWidth - 70} height={220} yAxisSuffix={` ${t('weightUnit')}`} chartConfig={lineChartConfig} withShadow={true} bezier onDataPointClick={handleWeightPointClick} yAxisLabel={isRTL ? '' : undefined} fromZero={true} /> ) : ( <View style={styles.emptyChart}><Ionicons name="stats-chart-outline" size={40} color={theme.textSecondary}/><Text style={styles.emptyChartText(theme)}>{t('weightEmptyText')}</Text></View> )}
+                        {selectedWeightPoint && ( <View style={[styles.tooltipPositioner, { left: selectedWeightPoint.x, top: selectedWeightPoint.y }]}><View style={styles.tooltipContainer}><View style={styles.tooltipBox(theme)}><View style={styles.tooltipContent}><Text style={styles.tooltipValue(theme)}>{selectedWeightPoint.value.toFixed(1)}</Text><Text style={styles.tooltipUnit(theme)}>{t('weightUnit')}</Text></View></View><View style={styles.tooltipArrow(theme)} /></View></View> )}
                     </View>
                 </Card>
-                
                 <Card title={t('nutritionCardTitle')} theme={theme} isRTL={isRTL}>
                     <Text style={styles.bigNumber(theme)}>{reportData.nutrition.avgCalories}</Text>
                     <Text style={styles.bigNumberLabel(theme)}>{t('caloriesPerDay')}</Text>
-                    {(reportData.nutrition.macros.some(m => m.population > 1)) ? (
-                        <PieChart 
-                            data={reportData.nutrition.macros} 
-                            width={screenWidth - 70} 
-                            height={200} 
-                            chartConfig={pieChartConfig}
-                            accessor={"population"} 
-                            backgroundColor={"transparent"} 
-                            absolute
-                        />
-                    ) : (
-                        <View style={styles.emptyChart}>
-                            <Ionicons name="pie-chart-outline" size={40} color={theme.textSecondary}/>
-                            <Text style={styles.emptyChartText(theme)}>{t('nutritionEmptyText')}</Text>
-                        </View>
-                    )}
+                    {(reportData.nutrition.macros.some(m => m.population > 1)) ? ( <PieChart data={reportData.nutrition.macros} width={screenWidth - 70} height={200} chartConfig={pieChartConfig} accessor={"population"} backgroundColor={"transparent"} absolute /> ) : ( <View style={styles.emptyChart}><Ionicons name="pie-chart-outline" size={40} color={theme.textSecondary}/><Text style={styles.emptyChartText(theme)}>{t('nutritionEmptyText')}</Text></View> )}
                 </Card>
                 <Card title={t('activityCardTitle')} theme={theme} isRTL={isRTL}><View style={styles.summaryContainer(isRTL)}><View style={styles.summaryItem}><Text style={styles.summaryValue(theme)}>{reportData.activity.workoutDays}</Text><Text style={styles.summaryLabel(theme)}>{t('workoutDays')}</Text></View><View style={styles.summaryItem}><Text style={styles.summaryValue(theme)}>🔥 {reportData.activity.totalCaloriesBurned}</Text><Text style={styles.summaryLabel(theme)}>{t('caloriesBurned')}</Text></View></View></Card>
             </ScrollView>
@@ -204,33 +163,7 @@ const ReportsScreen = ({ appLanguage }) => {
 };
 
 const styles = {
-    rootContainer: (theme) => ({ flex: 1, backgroundColor: theme.background }),
-    scrollContainer: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 90 },
-    centered: (theme) => ({ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background, paddingHorizontal: 20 }),
-    headerTitle: (theme, isRTL) => ({ fontSize: 28, fontWeight: 'bold', textAlign: isRTL ? 'right' : 'left', marginBottom: 20, color: theme.textPrimary }),
-    filterContainer: (isRTL, theme) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', marginBottom: 20, borderRadius: 20, borderWidth: 1, borderColor: theme.primary, overflow: 'hidden', backgroundColor: theme.card }),
-    filterButton: (theme) => ({ flex: 1, paddingVertical: 12, alignItems: 'center', }),
-    separator: (theme) => ({ width: 1, backgroundColor: theme.primary, }),
-    activeFilter: (theme) => ({ backgroundColor: theme.primary }),
-    filterText: (theme) => ({ fontSize: 16, color: theme.primary }),
-    activeFilterText: (theme) => ({ color: theme.buttonText, fontWeight: 'bold' }),
-    card: (theme) => ({ backgroundColor: theme.card, borderRadius: 20, padding: 15, marginBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 }),
-    cardTitle: (theme, isRTL) => ({ fontSize: 20, fontWeight: 'bold', color: theme.textPrimary, marginBottom: 15, textAlign: isRTL ? 'right' : 'left' }),
-    emptyChart: { height: 180, justifyContent: 'center', alignItems: 'center' },
-    emptyChartText: (theme) => ({ marginTop: 10, color: theme.textSecondary, fontSize: 14, textAlign: 'center' }),
-    summaryContainer: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-around', marginTop: 15 }),
-    summaryItem: { alignItems: 'center' },
-    summaryValue: (theme) => ({ fontSize: 18, fontWeight: 'bold', color: theme.textPrimary }),
-    summaryLabel: (theme) => ({ fontSize: 14, color: theme.textSecondary, marginTop: 5 }),
-    bigNumber: (theme) => ({ fontSize: 42, fontWeight: 'bold', color: theme.primary, textAlign: 'center' }),
-    bigNumberLabel: (theme) => ({ fontSize: 16, color: theme.textSecondary, textAlign: 'center', marginBottom: 20 }),
-    tooltipPositioner: { position: 'absolute', },
-    tooltipContainer: { alignItems: 'center', transform: [ { translateX: '-50%' }, { translateY: -54 } ] },
-    tooltipBox: (theme) => ({ backgroundColor: theme.tooltipBg, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, }),
-    tooltipArrow: (theme) => ({ width: 0, height: 0, backgroundColor: 'transparent', borderStyle: 'solid', borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 8, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: theme.tooltipBg, }),
-    tooltipContent: { flexDirection: 'row', alignItems: 'baseline', },
-    tooltipValue: (theme) => ({ color: theme.tooltipText, fontWeight: 'bold', fontSize: 16, }),
-    tooltipUnit: (theme) => ({ color: theme.tooltipText, fontSize: 12, fontWeight: 'normal', marginLeft: 4, }),
+    rootContainer: (theme) => ({ flex: 1, backgroundColor: theme.background }), scrollContainer: { paddingHorizontal: 20, paddingTop: 20, paddingBottom: 90 }, centered: (theme) => ({ flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background, paddingHorizontal: 20 }), headerTitle: (theme, isRTL) => ({ fontSize: 28, fontWeight: 'bold', textAlign: isRTL ? 'right' : 'left', marginBottom: 20, color: theme.textPrimary }), filterContainer: (isRTL, theme) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', marginBottom: 20, borderRadius: 20, borderWidth: 1, borderColor: theme.primary, overflow: 'hidden', backgroundColor: theme.card }), filterButton: (theme) => ({ flex: 1, paddingVertical: 12, alignItems: 'center', }), separator: (theme) => ({ width: 1, backgroundColor: theme.primary, }), activeFilter: (theme) => ({ backgroundColor: theme.primary }), filterText: (theme) => ({ fontSize: 16, color: theme.primary }), activeFilterText: (theme) => ({ color: theme.buttonText, fontWeight: 'bold' }), card: (theme) => ({ backgroundColor: theme.card, borderRadius: 20, padding: 15, marginBottom: 20, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.1, shadowRadius: 3, elevation: 2 }), cardTitle: (theme, isRTL) => ({ fontSize: 20, fontWeight: 'bold', color: theme.textPrimary, marginBottom: 15, textAlign: isRTL ? 'right' : 'left' }), emptyChart: { height: 180, justifyContent: 'center', alignItems: 'center' }, emptyChartText: (theme) => ({ marginTop: 10, color: theme.textSecondary, fontSize: 14, textAlign: 'center' }), summaryContainer: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-around', marginTop: 15 }), summaryItem: { alignItems: 'center' }, summaryValue: (theme) => ({ fontSize: 18, fontWeight: 'bold', color: theme.textPrimary }), summaryLabel: (theme) => ({ fontSize: 14, color: theme.textSecondary, marginTop: 5 }), bigNumber: (theme) => ({ fontSize: 42, fontWeight: 'bold', color: theme.primary, textAlign: 'center' }), bigNumberLabel: (theme) => ({ fontSize: 16, color: theme.textSecondary, textAlign: 'center', marginBottom: 20 }), tooltipPositioner: { position: 'absolute', }, tooltipContainer: { alignItems: 'center', transform: [ { translateX: '-50%' }, { translateY: -54 } ] }, tooltipBox: (theme) => ({ backgroundColor: theme.tooltipBg, paddingVertical: 8, paddingHorizontal: 12, borderRadius: 8, }), tooltipArrow: (theme) => ({ width: 0, height: 0, backgroundColor: 'transparent', borderStyle: 'solid', borderLeftWidth: 6, borderRightWidth: 6, borderTopWidth: 8, borderLeftColor: 'transparent', borderRightColor: 'transparent', borderTopColor: theme.tooltipBg, }), tooltipContent: { flexDirection: 'row', alignItems: 'baseline', }, tooltipValue: (theme) => ({ color: theme.tooltipText, fontWeight: 'bold', fontSize: 16, }), tooltipUnit: (theme) => ({ color: theme.tooltipText, fontSize: 12, fontWeight: 'normal', marginLeft: 4, }),
 };
 
 export default ReportsScreen;
