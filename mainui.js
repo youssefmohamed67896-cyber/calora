@@ -17,6 +17,8 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
 import * as BackgroundFetch from 'expo-background-fetch';
+import { useFonts } from 'expo-font';
+import * as SplashScreen from 'expo-splash-screen';
 
 // --- Screen Imports ---
 import ProfileScreen from './profile';
@@ -31,6 +33,9 @@ import { searchEgyptianFoodsWithImages, supabase } from './supabaseclient';
 import EditProfileScreen from './editprofile';
 import SettingsScreen from './setting'; 
 import AboutScreen from './about';
+
+// Keep the splash screen visible while we fetch resources
+SplashScreen.preventAutoHideAsync();
 
 const STEPS_NOTIFICATION_TASK = 'steps-notification-task';
 
@@ -94,7 +99,7 @@ const darkTheme = { primary: '#66BB6A', background: '#121212', card: '#1E1E1E', 
 const translations = {
     ar: {
         remainingCalories: 'سعر حراري متبقي', readOnlyBanner: 'أنت تعرض يوماً سابقاً. السجل للقراءة فقط.', mealSectionsTitle: 'أقسام الوجبات', mealSectionsDesc: 'هذا هو السجل التفصيلي لليوم.', breakfast: 'الفطور', lunch: 'الغداء', dinner: 'العشاء', snacks: 'وجبات خفيفة', add_to_meal: '+ أضف إلى {meal}', protein: 'بروتين', carbs: 'كربوهيدرات', fat: 'دهون', fiber: 'ألياف', sugar: 'سكر', sodium: 'صوديوم', g_unit: 'جم', mg_unit: 'مجم', kcal_unit: 'kcal', weight: 'الوزن', water: 'الماء', workouts: 'التمارين', steps: 'الخطوات', not_logged: 'لم يسجل', unsupported: 'غير مدعوم', kg_unit: 'كجم', burned_cal: 'سعر حراري', goal: 'الهدف: ', dailyLogTitle: 'سجل وجبات اليوم', add_to: 'إضافة إلى', search_placeholder: 'ابحث عن كشري، ملوخية، تفاح...', no_results: 'لا توجد نتائج بحث.', local_food: 'أكلة محلية 🇪🇬', error: 'خطأ', search_error_msg: 'الرجاء إدخال اسم طعام للبحث.', fetch_error_msg: 'حدث خطأ أثناء جلب تفاصيل الطعام.', save_error_msg: 'حدث خطأ أثناء حفظ البيانات.', diaryTab: 'يومياتي', reportsTab: 'تقارير', cameraTab: 'كاميرا', profileTab: 'حسابي', weightTrackerTitle: 'تتبع الوزن', waterTrackerTitle: 'تتبع الماء', workoutLogTitle: 'سجل التمارين', stepsReportTitle: 'تقرير الخطوات', foodLogDetailTitle: 'تفاصيل سجل الوجبات', 
-        weekdays: ['س', 'ح', 'ن', 'ث', 'ر', 'خ', 'ج'], // سبت، أحد، اثنين ... جمعة
+        weekdays: ['س', 'ح', 'ن', 'ث', 'ر', 'خ', 'ج'],
         p_macro: 'ب: ', c_macro: 'ك: ', f_macro: 'د: ', fib_macro: 'أ: ', sug_macro: 'س: ', sod_macro: 'ص: ',
         editProfile: 'تعديل الملف الشخصي', settings: 'الإعدادات', about: 'حول التطبيق',
     },
@@ -155,18 +160,18 @@ const DateNavigator = ({ selectedDate, onDateSelect, referenceToday, theme, t, i
     const isNextDisabled = startDate.getTime() >= todayWeekStart.getTime();
 
     return (
-        <View style={styles.dateNavContainer(theme)}>
+        <View style={styles.dateNavContainer(theme, isRTL)}>
             <View style={styles.dateNavHeader(isRTL)}>
                 <TouchableOpacity onPress={handlePrevWeek} style={styles.arrowButton}>
                     <Ionicons name={isRTL ? "chevron-forward-outline" : "chevron-back-outline"} size={24} color={theme.primary} />
                 </TouchableOpacity>
-                <Text style={styles.dateNavMonthText(theme)}>{monthYearString}</Text>
+                <Text style={styles.dateNavMonthText(theme, isRTL)}>{monthYearString}</Text>
                 <TouchableOpacity onPress={handleNextWeek} style={styles.arrowButton} disabled={isNextDisabled}>
                     <Ionicons name={isRTL ? "chevron-back-outline" : "chevron-forward-outline"} size={24} color={isNextDisabled ? theme.disabled : theme.primary} />
                 </TouchableOpacity>
             </View>
             <View style={styles.weekContainer(isRTL)}>
-                {weekDays.map((day, index) => <Text key={index} style={styles.weekDayText(theme)}>{day}</Text>)}
+                {weekDays.map((day, index) => <Text key={index} style={styles.weekDayText(theme, isRTL)}>{day}</Text>)}
             </View>
             <View style={styles.datesContainer(isRTL)}>
                 {displayDates.map((date, index) => {
@@ -177,7 +182,7 @@ const DateNavigator = ({ selectedDate, onDateSelect, referenceToday, theme, t, i
                     return (
                         <TouchableOpacity key={index} onPress={() => onDateSelect(date)} disabled={isFutureDate}>
                             <View style={[ styles.dateCircle, isDaySelected && { backgroundColor: theme.primary, borderRadius: 20 } ]}>
-                                <Text style={[ styles.dateText(theme), isDaySelected && styles.activeText(theme), isFutureDate && styles.disabledDateText(theme) ]}>
+                                <Text style={[ styles.dateText(theme, isRTL), isDaySelected && styles.activeText(theme), isFutureDate && styles.disabledDateText(theme) ]}>
                                     {date.getDate()}
                                 </Text>
                             </View>
@@ -189,7 +194,7 @@ const DateNavigator = ({ selectedDate, onDateSelect, referenceToday, theme, t, i
     );
 };
 
-const SummaryCard = ({ data, dailyGoal, theme, t }) => { const SIZE = Dimensions.get('window').width * 0.5; const STROKE_WIDTH = 18; const INDICATOR_SIZE = 24; const RADIUS = SIZE / 2; const CENTER_RADIUS = RADIUS - STROKE_WIDTH / 2; const remaining = Math.round(dailyGoal - data.food + (data.exercise || 0)); const progressValue = dailyGoal > 0 ? Math.min(data.food / dailyGoal, 1) : 0; const animatedProgress = useSharedValue(0); useEffect(() => { animatedProgress.value = withTiming(progressValue, { duration: 1000 }); }, [progressValue]); const animatedPathProps = useAnimatedProps(() => { const angle = animatedProgress.value * 360; if (angle < 0.1) { return { d: '' }; } return { d: describeArc(SIZE / 2, SIZE / 2, CENTER_RADIUS, 0, angle), }; }); const indicatorAnimatedStyle = useAnimatedStyle(() => { const angleRad = (animatedProgress.value * 360 - 90) * (Math.PI / 180); const x = (SIZE / 2) + CENTER_RADIUS * Math.cos(angleRad); const y = (SIZE / 2) + CENTER_RADIUS * Math.sin(angleRad); return { transform: [{ translateX: x }, { translateY: y }], }; }); return (<View style={[styles.card(theme), { alignItems: 'center' }]}><View style={[styles.summaryCircleContainer, { width: SIZE, height: SIZE }]}><Svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}><Circle cx={SIZE / 2} cy={SIZE / 2} r={CENTER_RADIUS} stroke={theme.progressUnfilled} strokeWidth={STROKE_WIDTH} fill="transparent" /><AnimatedPath animatedProps={animatedPathProps} stroke={theme.primary} strokeWidth={STROKE_WIDTH} fill="transparent" strokeLinecap="round" /></Svg><Animated.View style={[styles.progressIndicatorDot(theme), { width: INDICATOR_SIZE, height: INDICATOR_SIZE, borderRadius: INDICATOR_SIZE / 2, marginLeft: -(INDICATOR_SIZE / 2), marginTop: -(INDICATOR_SIZE / 2), }, indicatorAnimatedStyle]} /><View style={styles.summaryTextContainer}><Text style={styles.remainingCaloriesText(theme)}>{remaining}</Text><Text style={styles.remainingLabel(theme)}>{t('remainingCalories')}</Text></View></View></View>); };
+const SummaryCard = ({ data, dailyGoal, theme, t, isRTL }) => { const SIZE = Dimensions.get('window').width * 0.5; const STROKE_WIDTH = 18; const INDICATOR_SIZE = 24; const RADIUS = SIZE / 2; const CENTER_RADIUS = RADIUS - STROKE_WIDTH / 2; const remaining = Math.round(dailyGoal - data.food + (data.exercise || 0)); const progressValue = dailyGoal > 0 ? Math.min(data.food / dailyGoal, 1) : 0; const animatedProgress = useSharedValue(0); useEffect(() => { animatedProgress.value = withTiming(progressValue, { duration: 1000 }); }, [progressValue]); const animatedPathProps = useAnimatedProps(() => { const angle = animatedProgress.value * 360; if (angle < 0.1) { return { d: '' }; } return { d: describeArc(SIZE / 2, SIZE / 2, CENTER_RADIUS, 0, angle), }; }); const indicatorAnimatedStyle = useAnimatedStyle(() => { const angleRad = (animatedProgress.value * 360 - 90) * (Math.PI / 180); const x = (SIZE / 2) + CENTER_RADIUS * Math.cos(angleRad); const y = (SIZE / 2) + CENTER_RADIUS * Math.sin(angleRad); return { transform: [{ translateX: x }, { translateY: y }], }; }); return (<View style={[styles.card(theme, isRTL), { alignItems: 'center' }]}><View style={[styles.summaryCircleContainer, { width: SIZE, height: SIZE }]}><Svg width={SIZE} height={SIZE} viewBox={`0 0 ${SIZE} ${SIZE}`}><Circle cx={SIZE / 2} cy={SIZE / 2} r={CENTER_RADIUS} stroke={theme.progressUnfilled} strokeWidth={STROKE_WIDTH} fill="transparent" /><AnimatedPath animatedProps={animatedPathProps} stroke={theme.primary} strokeWidth={STROKE_WIDTH} fill="transparent" strokeLinecap="round" /></Svg><Animated.View style={[styles.progressIndicatorDot(theme), { width: INDICATOR_SIZE, height: INDICATOR_SIZE, borderRadius: INDICATOR_SIZE / 2, marginLeft: -(INDICATOR_SIZE / 2), marginTop: -(INDICATOR_SIZE / 2), }, indicatorAnimatedStyle]} /><View style={styles.summaryTextContainer}><Text style={styles.remainingCaloriesText(theme, isRTL)}>{remaining}</Text><Text style={styles.remainingLabel(theme, isRTL)}>{t('remainingCalories')}</Text></View></View></View>); };
 
 const NutrientRow = ({ label, consumed, goal, color, unit = 'جم', isLimit = false, theme, isRTL }) => { 
     const isOverLimit = isLimit && consumed > goal; 
@@ -201,13 +206,13 @@ const NutrientRow = ({ label, consumed, goal, color, unit = 'جم', isLimit = fa
             <View style={styles.nutrientRowHeader(isRTL)}>
                 {isRTL ? (
                     <>
-                        <Text style={styles.nutrientRowValue(theme)}>{valueText}</Text>
-                        <Text style={styles.nutrientRowLabel(theme)}>{label}</Text>
+                        <Text style={styles.nutrientRowValue(theme, isRTL)}>{valueText}</Text>
+                        <Text style={styles.nutrientRowLabel(theme, isRTL)}>{label}</Text>
                     </>
                 ) : (
                     <>
-                        <Text style={styles.nutrientRowLabel(theme)}>{label}</Text>
-                        <Text style={styles.nutrientRowValue(theme)}>{valueText}</Text>
+                        <Text style={styles.nutrientRowLabel(theme, isRTL)}>{label}</Text>
+                        <Text style={styles.nutrientRowValue(theme, isRTL)}>{valueText}</Text>
                     </>
                 )}
             </View>
@@ -226,15 +231,15 @@ const NutrientRow = ({ label, consumed, goal, color, unit = 'جم', isLimit = fa
     ); 
 };
 
-const NutrientSummaryCard = ({ data, theme, t, isRTL }) => { const nutrients = [{ label: t('protein'), consumed: data.protein.consumed, goal: data.protein.goal, color: theme.protein, unit: t('g_unit') }, { label: t('carbs'), consumed: data.carbs.consumed, goal: data.carbs.goal, color: theme.carbs, unit: t('g_unit') }, { label: t('fat'), consumed: data.fat.consumed, goal: data.fat.goal, color: theme.fat, unit: t('g_unit') }, { label: t('fiber'), consumed: data.fiber.consumed, goal: data.fiber.goal, color: theme.fiber, unit: t('g_unit') }, { label: t('sugar'), consumed: data.sugar.consumed, goal: data.sugar.goal, color: theme.sugar, unit: t('g_unit'), isLimit: true }, { label: t('sodium'), consumed: data.sodium.consumed, goal: data.sodium.goal, color: theme.sodium, unit: t('mg_unit'), isLimit: true },]; return (<View style={styles.card(theme)}>{nutrients.map((nutrient, index) => (<NutrientRow key={index} {...nutrient} theme={theme} isRTL={isRTL} />))}</View>); };
+const NutrientSummaryCard = ({ data, theme, t, isRTL }) => { const nutrients = [{ label: t('protein'), consumed: data.protein.consumed, goal: data.protein.goal, color: theme.protein, unit: t('g_unit') }, { label: t('carbs'), consumed: data.carbs.consumed, goal: data.carbs.goal, color: theme.carbs, unit: t('g_unit') }, { label: t('fat'), consumed: data.fat.consumed, goal: data.fat.goal, color: theme.fat, unit: t('g_unit') }, { label: t('fiber'), consumed: data.fiber.consumed, goal: data.fiber.goal, color: theme.fiber, unit: t('g_unit') }, { label: t('sugar'), consumed: data.sugar.consumed, goal: data.sugar.goal, color: theme.sugar, unit: t('g_unit'), isLimit: true }, { label: t('sodium'), consumed: data.sodium.consumed, goal: data.sodium.goal, color: theme.sodium, unit: t('mg_unit'), isLimit: true },]; return (<View style={styles.card(theme, isRTL)}>{nutrients.map((nutrient, index) => (<NutrientRow key={index} {...nutrient} theme={theme} isRTL={isRTL} />))}</View>); };
 const FoodLogItem = ({ item, theme, t, isRTL, showMacros = true }) => { let imageSource = null; if (item.capturedImageUri) { imageSource = { uri: item.capturedImageUri }; } else if (item.image && (item.image.startsWith('http') || item.image.startsWith('data:'))) { imageSource = { uri: item.image }; } else if (item.image) { imageSource = { uri: `https://spoonacular.com/cdn/ingredients_100x100/${item.image}` }; } return (<View style={styles.foodLogItemContainer(isRTL)}>{imageSource ? (<Image source={imageSource} style={styles.foodLogItemImage(isRTL)} />) : (<View style={styles.foodLogItemImagePlaceholder(theme, isRTL)}><Ionicons name="restaurant-outline" size={24} color={theme.primary} /></View>)}<View style={styles.foodLogItemDetails}><View style={styles.foodLogItemHeader(isRTL)}><Text style={styles.foodLogItemName(theme, isRTL)} numberOfLines={1}>{item.name}</Text><Text style={styles.foodLogItemCalories(theme, isRTL)}>{Math.round(item.calories)} {t('kcal_unit')}</Text></View>{showMacros && (<View style={styles.foodLogItemMacros(isRTL)}><Text style={styles.macroText(theme, isRTL)}><Text style={{ color: theme.protein }}>{t('p_macro')}</Text>{Math.round(item.p || 0)}g</Text><Text style={styles.macroText(theme, isRTL)}><Text style={{ color: theme.carbs }}>{t('c_macro')}</Text>{Math.round(item.c || 0)}g</Text><Text style={styles.macroText(theme, isRTL)}><Text style={{ color: theme.fat }}>{t('f_macro')}</Text>{Math.round(item.f || 0)}g</Text><Text style={styles.macroText(theme, isRTL)}><Text style={{ color: theme.fiber }}>{t('fib_macro')}</Text>{Math.round(item.fib || 0)}g</Text><Text style={styles.macroText(theme, isRTL)}><Text style={{ color: theme.sugar }}>{t('sug_macro')}</Text>{Math.round(item.sug || 0)}g</Text><Text style={styles.macroText(theme, isRTL)}><Text style={{ color: theme.sodium }}>{t('sod_macro')}</Text>{Math.round(item.sod || 0)}mg</Text></View>)}</View></View>); };
-const DailyFoodLog = ({ items, onPress, theme, t, isRTL }) => { const isEmpty = !items || items.length === 0; const MAX_PREVIEW_IMAGES = 4; const getImageSource = (item) => { if (item.capturedImageUri) return { uri: item.capturedImageUri }; if (item.image && (item.image.startsWith('http') || item.image.startsWith('data:'))) return { uri: item.image }; if (item.image) return { uri: `https://spoonacular.com/cdn/ingredients_100x100/${item.image}` }; return null; }; return (<TouchableOpacity onPress={onPress} activeOpacity={0.8}><View style={[styles.card(theme), styles.dailyLogCard]}><View style={styles.dailyLogContentContainer(isRTL)}><Text style={styles.sectionTitle(theme, isRTL)}>{t('dailyLogTitle')}</Text><View style={styles.dailyLogLeftContainer(isRTL)}>{!isEmpty ? (<View style={styles.foodPreviewContainer(isRTL)}>{items.length > MAX_PREVIEW_IMAGES && (<View style={[styles.previewCounterCircle(theme), { zIndex: 0 }]}><Text style={styles.previewCounterText(theme)}>+{items.length - MAX_PREVIEW_IMAGES}</Text></View>)}{items.slice(0, MAX_PREVIEW_IMAGES).map((item, index) => { const imageSource = getImageSource(item); const zIndex = MAX_PREVIEW_IMAGES - index; const marginStyle = { [isRTL ? 'marginRight' : 'marginLeft']: -18, zIndex }; return imageSource ? (<Image key={`${item.id}-${index}`} source={imageSource} style={[styles.previewImage(theme), marginStyle]} />) : (<View key={`${item.id}-${index}`} style={[styles.previewImage(theme), styles.previewImagePlaceholder(theme), marginStyle]}><Ionicons name="restaurant-outline" size={16} color={theme.primary} /></View>); })}</View>) : (<Ionicons name={isRTL ? "chevron-back-outline" : "chevron-forward-outline"} size={24} color={theme.textSecondary} />)}</View></View></View></TouchableOpacity>); };
-const MealLoggingSection = ({ title, iconName, items, onAddPress, mealKey, isEditable, theme, t, isRTL }) => { const totalCalories = items.reduce((sum, item) => sum + (item.calories || 0), 0); const totalMacros = items.reduce((totals, item) => { totals.p += item.p || 0; totals.c += item.c || 0; totals.f += item.f || 0; totals.fib += item.fib || 0; totals.sug += item.sug || 0; totals.sod += item.sod || 0; return totals; }, { p: 0, c: 0, f: 0, fib: 0, sug: 0, sod: 0 }); return (<View style={styles.card(theme)}><View style={styles.mealSectionHeader(isRTL)}><View style={styles.mealSectionHeaderLeft(isRTL)}><Ionicons name={iconName} size={24} color={theme.primary} style={styles.mealIcon(isRTL)} /><Text style={styles.mealSectionTitle(theme)}>{title}</Text></View><Text style={styles.mealSectionTotalCalories(theme)}>{Math.round(totalCalories)} {t('kcal_unit')}</Text></View>{items && items.length > 0 && items.map((item, index) => (<FoodLogItem key={`${item.id}-${index}`} item={item} showMacros={false} theme={theme} t={t} isRTL={isRTL} />))}{items && items.length > 0 && (<View style={styles.mealMacrosContainer(theme, isRTL)}><View style={styles.macroSummaryItem(isRTL)}><Text style={styles.macroSummaryText(theme)}>{t('fat')}: {Math.round(totalMacros.f)} {t('g_unit')}</Text></View><View style={styles.macroSummaryItem(isRTL)}><Text style={styles.macroSummaryText(theme)}>{t('carbs')}: {Math.round(totalMacros.c)} {t('g_unit')}</Text></View><View style={styles.macroSummaryItem(isRTL)}><Text style={styles.macroSummaryText(theme)}>{t('protein')}: {Math.round(totalMacros.p)} {t('g_unit')}</Text></View><View style={styles.macroSummaryItem(isRTL)}><Text style={styles.macroSummaryText(theme)}>{t('sugar')}: {Math.round(totalMacros.sug)} {t('g_unit')}</Text></View><View style={styles.macroSummaryItem(isRTL)}><Text style={styles.macroSummaryText(theme)}>{t('fiber')}: {Math.round(totalMacros.fib)} {t('g_unit')}</Text></View><View style={styles.macroSummaryItem(isRTL)}><Text style={styles.macroSummaryText(theme)}>{t('sodium')}: {Math.round(totalMacros.sod)} {t('mg_unit')}</Text></View></View>)}<TouchableOpacity style={[styles.smartAddButton(theme), !isEditable && styles.disabledButton(theme)]} onPress={() => onAddPress(mealKey)} disabled={!isEditable} ><Text style={styles.smartAddButtonText(theme)}>{t('add_to_meal', {meal: title})}</Text></TouchableOpacity></View>); };
-const AddFoodModal = ({ visible, onClose, onFoodSelect, mealKey, theme, t, isRTL }) => { const [query, setQuery] = useState(''); const [results, setResults] = useState([]); const [loading, setLoading] = useState(false); const [fetchingDetailsId, setFetchingDetailsId] = useState(null); const mealTranslations = { breakfast: t('breakfast'), lunch: t('lunch'), dinner: t('dinner'), snacks: t('snacks') }; const mealTitle = mealTranslations[mealKey] || '...'; const handleClose = () => { setQuery(''); setResults([]); setLoading(false); setFetchingDetailsId(null); onClose(); }; const searchSpoonacular = async (searchQuery) => { try { const response = await fetch(`https://api.spoonacular.com/food/ingredients/search?query=${searchQuery}&number=15&apiKey=${SPOONACULAR_API_KEY}`); const data = await response.json(); return data.results ? data.results.map(item => ({ ...item, source: 'spoonacular' })) : []; } catch (error) { console.error("Spoonacular Search API Error:", error); return []; } }; const handleSearch = async () => { if (!query.trim()) { Alert.alert(t('error'), t('search_error_msg')); return; } setLoading(true); setResults([]); try { const [egyptianResults, spoonacularResults] = await Promise.all([searchEgyptianFoodsWithImages(query), searchSpoonacular(query)]); setResults([...egyptianResults, ...spoonacularResults]); } catch (error) { Alert.alert(t('error'), t('fetch_error_msg')); } finally { setLoading(false); } }; const handleSelectFood = async (selectedItem) => { if (selectedItem.source === 'local') { onFoodSelect(selectedItem); handleClose(); return; } setFetchingDetailsId(selectedItem.id); try { const response = await fetch(`https://api.spoonacular.com/food/ingredients/${selectedItem.id}/information?amount=100&unit=g&apiKey=${SPOONACULAR_API_KEY}`); const data = await response.json(); if (data.nutrition && data.nutrition.nutrients) { const nutrition = data.nutrition.nutrients; const finalFoodItem = { id: data.id, name: data.name, quantity: '100g', calories: Math.round(nutrition.find(n => n.name === 'Calories')?.amount || 0), p: Math.round(nutrition.find(n => n.name === 'Protein')?.amount || 0), c: Math.round(nutrition.find(n => n.name === 'Carbohydrates')?.amount || 0), f: Math.round(nutrition.find(n => n.name === 'Fat')?.amount || 0), fib: Math.round(nutrition.find(n => n.name === 'Fiber')?.amount || 0), sug: Math.round(nutrition.find(n => n.name === 'Sugar')?.amount || 0), sod: Math.round(nutrition.find(n => n.name === 'Sodium')?.amount || 0), image: selectedItem.image, }; onFoodSelect(finalFoodItem); handleClose(); } else { Alert.alert(t('error'), t('fetch_error_msg')); } } catch (error) { console.error("Spoonacular Details API Error:", error); Alert.alert(t('error'), t('fetch_error_msg')); } finally { setFetchingDetailsId(null); } }; return (<Modal visible={visible} onRequestClose={handleClose} animationType="slide" transparent={true}><View style={styles.modalOverlay}><View style={styles.modalView(theme)}><View style={styles.modalHeader(theme, isRTL)}><Text style={styles.modalTitle(theme)}>{t('add_to')} {mealTitle}</Text><TouchableOpacity onPress={handleClose}><Ionicons name="close-circle" size={30} color={theme.primary} /></TouchableOpacity></View><View style={styles.searchContainer(isRTL)}><TextInput style={styles.searchInput(theme, isRTL)} placeholder={t('search_placeholder')} value={query} onChangeText={setQuery} placeholderTextColor={theme.textSecondary} returnKeyType="search" onSubmitEditing={handleSearch} /><TouchableOpacity style={styles.searchButton(theme, isRTL)} onPress={handleSearch}><Ionicons name="search" size={24} color={theme.white} /></TouchableOpacity></View>{loading ? (<ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 20 }} />) : (<FlatList data={results} keyExtractor={(item, index) => `${item.id}-${index}`} renderItem={({ item }) => (<TouchableOpacity style={styles.resultItem(isRTL)} onPress={() => handleSelectFood(item)} disabled={fetchingDetailsId !== null}><View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}><Text style={styles.foodName(theme)}>{item.name}</Text>{item.source === 'local' && <Text style={{color: theme.primary, fontSize: 12}}>{t('local_food')}</Text>}</View>{fetchingDetailsId === item.id ? (<ActivityIndicator size="small" color={theme.primary} style={{ [isRTL ? 'marginRight' : 'marginLeft']: 15 }} />) : (<Ionicons name="add-circle-outline" size={28} color={theme.primary} style={{ [isRTL ? 'marginRight' : 'marginLeft']: 15 }} />)}</TouchableOpacity>)} ListEmptyComponent={!loading && query.length > 0 ? <Text style={styles.emptyText(theme)}>{t('no_results')}</Text> : null} />)}</View></View></Modal>);};
-const SmallWeightCard = ({ weight, onPress, theme, t, isRTL }) => (<TouchableOpacity style={styles.smallCard(theme)} onPress={onPress}><View style={styles.smallCardHeader(isRTL)}><View style={[styles.smallCardIconContainer(theme)]}><Ionicons name="barbell-outline" size={20} color={theme.primary} /></View><Text style={styles.smallCardTitle(theme, isRTL)}>{t('weight')}</Text></View><Text style={styles.smallCardValue(theme, isRTL)}>{weight > 0 ? `${weight} ${t('kg_unit')}` : t('not_logged')}</Text></TouchableOpacity>);
-const SmallWaterCard = ({ water, waterGoal, onPress, theme, t, isRTL }) => { const DISPLAY_DROPS = 15; const filledDrops = Math.min(water || 0, DISPLAY_DROPS); const totalDropsToDisplay = Math.min(waterGoal || DISPLAY_DROPS, DISPLAY_DROPS); const drops = Array.from({ length: totalDropsToDisplay }, (_, i) => i); return (<TouchableOpacity style={styles.smallCard(theme)} onPress={onPress}><View style={styles.smallCardHeader(isRTL)}><View style={[styles.smallCardIconContainer(theme)]}><Ionicons name="water-outline" size={20} color={theme.primary} /></View><Text style={styles.smallCardTitle(theme, isRTL)}>{t('water')}</Text></View><View style={styles.waterVisualizerContainer(isRTL)}>{drops.map(index => (<Ionicons key={index} name={index < filledDrops ? 'water' : 'water-outline'} size={22} color={index < filledDrops ? '#007BFF' : theme.disabled} style={styles.waterDropIcon} />))}</View></TouchableOpacity>); };
-const SmallWorkoutCard = ({ totalCaloriesBurned = 0, onPress, theme, t, isRTL }) => { return ( <TouchableOpacity style={styles.smallCard(theme)} onPress={onPress}><View style={styles.smallCardHeader(isRTL)}><View style={[styles.smallCardIconContainer(theme)]}><MaterialCommunityIcons name="run-fast" size={20} color={theme.primary} /></View><Text style={styles.smallCardTitle(theme, isRTL)}>{t('workouts')}</Text></View><View style={styles.smallCardContent(isRTL)}><Text style={styles.smallCardValue(theme, isRTL)}>{totalCaloriesBurned > 0 ? `🔥 ${Math.round(totalCaloriesBurned)}` : t('not_logged')}</Text>{totalCaloriesBurned > 0 ? <Text style={styles.smallCardSubValue(theme, isRTL)}>{t('burned_cal')}</Text> : null }</View></TouchableOpacity> ); };
-const SmallStepsCard = ({ navigation, theme, t, isRTL }) => { const [status, setStatus] = useState('checking'); const [currentStepCount, setCurrentStepCount] = useState(0); const [stepsGoal, setStepsGoal] = useState(10000); useFocusEffect(useCallback(() => { const subscribe = async () => { const savedGoal = await AsyncStorage.getItem('stepsGoal'); if (savedGoal) setStepsGoal(parseInt(savedGoal, 10)); const isAvailable = await Pedometer.isAvailableAsync(); if (!isAvailable) { setStatus('unavailable'); return; } const { status: permissionStatus } = await Pedometer.requestPermissionsAsync(); if (permissionStatus !== 'granted') { setStatus('denied'); return; } const end = new Date(); const start = new Date(); start.setHours(0, 0, 0, 0); try { const pastStepCountResult = await Pedometer.getStepCountAsync(start, end); if (pastStepCountResult) setCurrentStepCount(pastStepCountResult.steps); setStatus('available'); } catch (error) { console.error("Pedometer error:", error); setStatus('unavailable'); } }; subscribe(); }, [])); const renderContent = () => { if (status === 'checking') return <ActivityIndicator style={{ marginTop: 20 }} color={theme.primary} />; if (status === 'unavailable' || status === 'denied') return <Text style={[styles.smallCardValue(theme, isRTL), { fontSize: 20, marginTop: 15 }]}>{t('unsupported')}</Text>; const progress = stepsGoal > 0 ? currentStepCount / stepsGoal : 0; return (<View style={styles.stepsCardContent}><View style={styles.stepsCardCircleContainer}><Progress.Circle size={80} progress={progress} showsText={false} color={theme.primary} unfilledColor={theme.progressUnfilled} borderWidth={0} thickness={8} /><View style={styles.stepsCardTextContainer}><Text style={styles.stepsCardCountText(theme)}>{currentStepCount.toLocaleString()}</Text></View></View><Text style={styles.stepsCardGoalText(theme)}>{t('goal')}{stepsGoal.toLocaleString()}</Text></View>); }; return (<TouchableOpacity style={styles.smallCard(theme)} onPress={() => navigation.navigate('Steps')}><View style={styles.smallCardHeader(isRTL)}><View style={[styles.smallCardIconContainer(theme)]}><MaterialCommunityIcons name="walk" size={20} color={theme.primary} /></View><Text style={styles.smallCardTitle(theme, isRTL)}>{t('steps')}</Text></View>{renderContent()}</TouchableOpacity>); };
+const DailyFoodLog = ({ items, onPress, theme, t, isRTL }) => { const isEmpty = !items || items.length === 0; const MAX_PREVIEW_IMAGES = 4; const getImageSource = (item) => { if (item.capturedImageUri) return { uri: item.capturedImageUri }; if (item.image && (item.image.startsWith('http') || item.image.startsWith('data:'))) return { uri: item.image }; if (item.image) return { uri: `https://spoonacular.com/cdn/ingredients_100x100/${item.image}` }; return null; }; return (<TouchableOpacity onPress={onPress} activeOpacity={0.8}><View style={[styles.card(theme, isRTL), styles.dailyLogCard]}><View style={styles.dailyLogContentContainer(isRTL)}><Text style={styles.sectionTitle(theme, isRTL)}>{t('dailyLogTitle')}</Text><View style={styles.dailyLogLeftContainer(isRTL)}>{!isEmpty ? (<View style={styles.foodPreviewContainer(isRTL)}>{items.length > MAX_PREVIEW_IMAGES && (<View style={[styles.previewCounterCircle(theme), { zIndex: 0 }]}><Text style={styles.previewCounterText(theme, isRTL)}>+{items.length - MAX_PREVIEW_IMAGES}</Text></View>)}{items.slice(0, MAX_PREVIEW_IMAGES).map((item, index) => { const imageSource = getImageSource(item); const zIndex = MAX_PREVIEW_IMAGES - index; const marginStyle = { [isRTL ? 'marginRight' : 'marginLeft']: -18, zIndex }; return imageSource ? (<Image key={`${item.id}-${index}`} source={imageSource} style={[styles.previewImage(theme), marginStyle]} />) : (<View key={`${item.id}-${index}`} style={[styles.previewImage(theme), styles.previewImagePlaceholder(theme), marginStyle]}><Ionicons name="restaurant-outline" size={16} color={theme.primary} /></View>); })}</View>) : (<Ionicons name={isRTL ? "chevron-back-outline" : "chevron-forward-outline"} size={24} color={theme.textSecondary} />)}</View></View></View></TouchableOpacity>); };
+const MealLoggingSection = ({ title, iconName, items, onAddPress, mealKey, isEditable, theme, t, isRTL }) => { const totalCalories = items.reduce((sum, item) => sum + (item.calories || 0), 0); const totalMacros = items.reduce((totals, item) => { totals.p += item.p || 0; totals.c += item.c || 0; totals.f += item.f || 0; totals.fib += item.fib || 0; totals.sug += item.sug || 0; totals.sod += item.sod || 0; return totals; }, { p: 0, c: 0, f: 0, fib: 0, sug: 0, sod: 0 }); return (<View style={styles.card(theme, isRTL)}><View style={styles.mealSectionHeader(isRTL)}><View style={styles.mealSectionHeaderLeft(isRTL)}><Ionicons name={iconName} size={24} color={theme.primary} style={styles.mealIcon(isRTL)} /><Text style={styles.mealSectionTitle(theme, isRTL)}>{title}</Text></View><Text style={styles.mealSectionTotalCalories(theme, isRTL)}>{Math.round(totalCalories)} {t('kcal_unit')}</Text></View>{items && items.length > 0 && items.map((item, index) => (<FoodLogItem key={`${item.id}-${index}`} item={item} showMacros={false} theme={theme} t={t} isRTL={isRTL} />))}{items && items.length > 0 && (<View style={styles.mealMacrosContainer(theme, isRTL)}><View style={styles.macroSummaryItem(isRTL)}><Text style={styles.macroSummaryText(theme, isRTL)}>{t('fat')}: {Math.round(totalMacros.f)} {t('g_unit')}</Text></View><View style={styles.macroSummaryItem(isRTL)}><Text style={styles.macroSummaryText(theme, isRTL)}>{t('carbs')}: {Math.round(totalMacros.c)} {t('g_unit')}</Text></View><View style={styles.macroSummaryItem(isRTL)}><Text style={styles.macroSummaryText(theme, isRTL)}>{t('protein')}: {Math.round(totalMacros.p)} {t('g_unit')}</Text></View><View style={styles.macroSummaryItem(isRTL)}><Text style={styles.macroSummaryText(theme, isRTL)}>{t('sugar')}: {Math.round(totalMacros.sug)} {t('g_unit')}</Text></View><View style={styles.macroSummaryItem(isRTL)}><Text style={styles.macroSummaryText(theme, isRTL)}>{t('fiber')}: {Math.round(totalMacros.fib)} {t('g_unit')}</Text></View><View style={styles.macroSummaryItem(isRTL)}><Text style={styles.macroSummaryText(theme, isRTL)}>{t('sodium')}: {Math.round(totalMacros.sod)} {t('mg_unit')}</Text></View></View>)}<TouchableOpacity style={[styles.smartAddButton(theme), !isEditable && styles.disabledButton(theme)]} onPress={() => onAddPress(mealKey)} disabled={!isEditable} ><Text style={styles.smartAddButtonText(theme, isRTL)}>{t('add_to_meal', {meal: title})}</Text></TouchableOpacity></View>); };
+const AddFoodModal = ({ visible, onClose, onFoodSelect, mealKey, theme, t, isRTL }) => { const [query, setQuery] = useState(''); const [results, setResults] = useState([]); const [loading, setLoading] = useState(false); const [fetchingDetailsId, setFetchingDetailsId] = useState(null); const mealTranslations = { breakfast: t('breakfast'), lunch: t('lunch'), dinner: t('dinner'), snacks: t('snacks') }; const mealTitle = mealTranslations[mealKey] || '...'; const handleClose = () => { setQuery(''); setResults([]); setLoading(false); setFetchingDetailsId(null); onClose(); }; const searchSpoonacular = async (searchQuery) => { try { const response = await fetch(`https://api.spoonacular.com/food/ingredients/search?query=${searchQuery}&number=15&apiKey=${SPOONACULAR_API_KEY}`); const data = await response.json(); return data.results ? data.results.map(item => ({ ...item, source: 'spoonacular' })) : []; } catch (error) { console.error("Spoonacular Search API Error:", error); return []; } }; const handleSearch = async () => { if (!query.trim()) { Alert.alert(t('error'), t('search_error_msg')); return; } setLoading(true); setResults([]); try { const [egyptianResults, spoonacularResults] = await Promise.all([searchEgyptianFoodsWithImages(query), searchSpoonacular(query)]); setResults([...egyptianResults, ...spoonacularResults]); } catch (error) { Alert.alert(t('error'), t('fetch_error_msg')); } finally { setLoading(false); } }; const handleSelectFood = async (selectedItem) => { if (selectedItem.source === 'local') { onFoodSelect(selectedItem); handleClose(); return; } setFetchingDetailsId(selectedItem.id); try { const response = await fetch(`https://api.spoonacular.com/food/ingredients/${selectedItem.id}/information?amount=100&unit=g&apiKey=${SPOONACULAR_API_KEY}`); const data = await response.json(); if (data.nutrition && data.nutrition.nutrients) { const nutrition = data.nutrition.nutrients; const finalFoodItem = { id: data.id, name: data.name, quantity: '100g', calories: Math.round(nutrition.find(n => n.name === 'Calories')?.amount || 0), p: Math.round(nutrition.find(n => n.name === 'Protein')?.amount || 0), c: Math.round(nutrition.find(n => n.name === 'Carbohydrates')?.amount || 0), f: Math.round(nutrition.find(n => n.name === 'Fat')?.amount || 0), fib: Math.round(nutrition.find(n => n.name === 'Fiber')?.amount || 0), sug: Math.round(nutrition.find(n => n.name === 'Sugar')?.amount || 0), sod: Math.round(nutrition.find(n => n.name === 'Sodium')?.amount || 0), image: selectedItem.image, }; onFoodSelect(finalFoodItem); handleClose(); } else { Alert.alert(t('error'), t('fetch_error_msg')); } } catch (error) { console.error("Spoonacular Details API Error:", error); Alert.alert(t('error'), t('fetch_error_msg')); } finally { setFetchingDetailsId(null); } }; return (<Modal visible={visible} onRequestClose={handleClose} animationType="slide" transparent={true}><View style={styles.modalOverlay}><View style={styles.modalView(theme, isRTL)}><View style={styles.modalHeader(theme, isRTL)}><Text style={styles.modalTitle(theme, isRTL)}>{t('add_to')} {mealTitle}</Text><TouchableOpacity onPress={handleClose}><Ionicons name="close-circle" size={30} color={theme.primary} /></TouchableOpacity></View><View style={styles.searchContainer(isRTL)}><TextInput style={styles.searchInput(theme, isRTL)} placeholder={t('search_placeholder')} value={query} onChangeText={setQuery} placeholderTextColor={theme.textSecondary} returnKeyType="search" onSubmitEditing={handleSearch} /><TouchableOpacity style={styles.searchButton(theme, isRTL)} onPress={handleSearch}><Ionicons name="search" size={24} color={theme.white} /></TouchableOpacity></View>{loading ? (<ActivityIndicator size="large" color={theme.primary} style={{ marginTop: 20 }} />) : (<FlatList data={results} keyExtractor={(item, index) => `${item.id}-${index}`} renderItem={({ item }) => (<TouchableOpacity style={styles.resultItem(isRTL)} onPress={() => handleSelectFood(item)} disabled={fetchingDetailsId !== null}><View style={{ flex: 1, alignItems: isRTL ? 'flex-end' : 'flex-start' }}><Text style={styles.foodName(theme, isRTL)}>{item.name}</Text>{item.source === 'local' && <Text style={{color: theme.primary, fontSize: 12, fontFamily: isRTL ? 'Cairo-Regular' : undefined}}>{t('local_food')}</Text>}</View>{fetchingDetailsId === item.id ? (<ActivityIndicator size="small" color={theme.primary} style={{ [isRTL ? 'marginRight' : 'marginLeft']: 15 }} />) : (<Ionicons name="add-circle-outline" size={28} color={theme.primary} style={{ [isRTL ? 'marginRight' : 'marginLeft']: 15 }} />)}</TouchableOpacity>)} ListEmptyComponent={!loading && query.length > 0 ? <Text style={styles.emptyText(theme, isRTL)}>{t('no_results')}</Text> : null} />)}</View></View></Modal>);};
+const SmallWeightCard = ({ weight, onPress, theme, t, isRTL }) => (<TouchableOpacity style={styles.smallCard(theme, isRTL)} onPress={onPress}><View style={styles.smallCardHeader(isRTL)}><View style={[styles.smallCardIconContainer(theme)]}><Ionicons name="barbell-outline" size={20} color={theme.primary} /></View><Text style={styles.smallCardTitle(theme, isRTL)}>{t('weight')}</Text></View><Text style={styles.smallCardValue(theme, isRTL)}>{weight > 0 ? `${weight} ${t('kg_unit')}` : t('not_logged')}</Text></TouchableOpacity>);
+const SmallWaterCard = ({ water, waterGoal, onPress, theme, t, isRTL }) => { const DISPLAY_DROPS = 15; const filledDrops = Math.min(water || 0, DISPLAY_DROPS); const totalDropsToDisplay = Math.min(waterGoal || DISPLAY_DROPS, DISPLAY_DROPS); const drops = Array.from({ length: totalDropsToDisplay }, (_, i) => i); return (<TouchableOpacity style={styles.smallCard(theme, isRTL)} onPress={onPress}><View style={styles.smallCardHeader(isRTL)}><View style={[styles.smallCardIconContainer(theme)]}><Ionicons name="water-outline" size={20} color={theme.primary} /></View><Text style={styles.smallCardTitle(theme, isRTL)}>{t('water')}</Text></View><View style={styles.waterVisualizerContainer(isRTL)}>{drops.map(index => (<Ionicons key={index} name={index < filledDrops ? 'water' : 'water-outline'} size={22} color={index < filledDrops ? '#007BFF' : theme.disabled} style={styles.waterDropIcon} />))}</View></TouchableOpacity>); };
+const SmallWorkoutCard = ({ totalCaloriesBurned = 0, onPress, theme, t, isRTL }) => { return ( <TouchableOpacity style={styles.smallCard(theme, isRTL)} onPress={onPress}><View style={styles.smallCardHeader(isRTL)}><View style={[styles.smallCardIconContainer(theme)]}><MaterialCommunityIcons name="run-fast" size={20} color={theme.primary} /></View><Text style={styles.smallCardTitle(theme, isRTL)}>{t('workouts')}</Text></View><View style={styles.smallCardContent(isRTL)}><Text style={styles.smallCardValue(theme, isRTL)}>{totalCaloriesBurned > 0 ? `🔥 ${Math.round(totalCaloriesBurned)}` : t('not_logged')}</Text>{totalCaloriesBurned > 0 ? <Text style={styles.smallCardSubValue(theme, isRTL)}>{t('burned_cal')}</Text> : null }</View></TouchableOpacity> ); };
+const SmallStepsCard = ({ navigation, theme, t, isRTL }) => { const [status, setStatus] = useState('checking'); const [currentStepCount, setCurrentStepCount] = useState(0); const [stepsGoal, setStepsGoal] = useState(10000); useFocusEffect(useCallback(() => { const subscribe = async () => { const savedGoal = await AsyncStorage.getItem('stepsGoal'); if (savedGoal) setStepsGoal(parseInt(savedGoal, 10)); const isAvailable = await Pedometer.isAvailableAsync(); if (!isAvailable) { setStatus('unavailable'); return; } const { status: permissionStatus } = await Pedometer.requestPermissionsAsync(); if (permissionStatus !== 'granted') { setStatus('denied'); return; } const end = new Date(); const start = new Date(); start.setHours(0, 0, 0, 0); try { const pastStepCountResult = await Pedometer.getStepCountAsync(start, end); if (pastStepCountResult) setCurrentStepCount(pastStepCountResult.steps); setStatus('available'); } catch (error) { console.error("Pedometer error:", error); setStatus('unavailable'); } }; subscribe(); }, [])); const renderContent = () => { if (status === 'checking') return <ActivityIndicator style={{ marginTop: 20 }} color={theme.primary} />; if (status === 'unavailable' || status === 'denied') return <Text style={[styles.smallCardValue(theme, isRTL), { fontSize: 20, marginTop: 15 }]}>{t('unsupported')}</Text>; const progress = stepsGoal > 0 ? currentStepCount / stepsGoal : 0; return (<View style={styles.stepsCardContent}><View style={styles.stepsCardCircleContainer}><Progress.Circle size={80} progress={progress} showsText={false} color={theme.primary} unfilledColor={theme.progressUnfilled} borderWidth={0} thickness={8} /><View style={styles.stepsCardTextContainer}><Text style={styles.stepsCardCountText(theme, isRTL)}>{currentStepCount.toLocaleString()}</Text></View></View><Text style={styles.stepsCardGoalText(theme, isRTL)}>{t('goal')}{stepsGoal.toLocaleString()}</Text></View>); }; return (<TouchableOpacity style={styles.smallCard(theme, isRTL)} onPress={() => navigation.navigate('Steps')}><View style={styles.smallCardHeader(isRTL)}><View style={[styles.smallCardIconContainer(theme)]}><MaterialCommunityIcons name="walk" size={20} color={theme.primary} /></View><Text style={styles.smallCardTitle(theme, isRTL)}>{t('steps')}</Text></View>{renderContent()}</TouchableOpacity>); };
 const DashboardGrid = ({ weight, water, waterGoal, totalExerciseCalories, onWeightPress, onWaterPress, onWorkoutPress, navigation, theme, t, isRTL }) => (<View style={styles.dashboardGridContainer}><SmallWeightCard weight={weight} onPress={onWeightPress} theme={theme} t={t} isRTL={isRTL} /><SmallWaterCard water={water} waterGoal={waterGoal} onPress={onWaterPress} theme={theme} t={t} isRTL={isRTL} /><SmallWorkoutCard totalCaloriesBurned={totalExerciseCalories} onPress={onWorkoutPress} theme={theme} t={t} isRTL={isRTL} /><SmallStepsCard navigation={navigation} theme={theme} t={t} isRTL={isRTL} /></View>);
 
 function DiaryScreen({ navigation, route, setHasProgress, theme, t, isRTL, language }) { 
@@ -307,7 +312,7 @@ function DiaryScreen({ navigation, route, setHasProgress, theme, t, isRTL, langu
     const calculatedTotals = allFoodItems.reduce((acc, item) => { return { food: acc.food + (item.calories || 0), protein: acc.protein + (item.p || 0), carbs: acc.carbs + (item.c || 0), fat: acc.fat + (item.f || 0), fiber: acc.fiber + (item.fib || 0), sugar: acc.sugar + (item.sug || 0), sodium: acc.sodium + (item.sod || 0), }; }, { food: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0 }); 
     const totalExerciseCalories = (dailyData.exercises || []).reduce((sum, ex) => sum + (ex.calories || 0), 0); 
     useEffect(() => { const progressMade = calculatedTotals.food > 0 || totalExerciseCalories > 0; setHasProgress(progressMade); }, [calculatedTotals.food, totalExerciseCalories, setHasProgress]); 
-    return ( <SafeAreaView style={styles.rootContainer(theme)}><StatusBar barStyle={theme.statusBar} backgroundColor={theme.background} /><AddFoodModal visible={isFoodModalVisible} onClose={() => setFoodModalVisible(false)} onFoodSelect={handleFoodSelectedFromModal} mealKey={currentMealKey} theme={theme} t={t} isRTL={isRTL} /><ScrollView contentContainerStyle={styles.container}><DateNavigator selectedDate={selectedDate} onDateSelect={setSelectedDate} referenceToday={referenceToday} theme={theme} t={t} isRTL={isRTL} language={language} />{!isToday && (<View style={styles.readOnlyBanner(theme, isRTL)}><Ionicons name="information-circle-outline" size={20} color={theme.white} style={{ [isRTL ? 'marginLeft' : 'marginRight']: 8 }} /><Text style={styles.readOnlyBannerText(theme, isRTL)}>{t('readOnlyBanner')}</Text></View>)}<SummaryCard data={{ food: calculatedTotals.food, exercise: totalExerciseCalories }} dailyGoal={dailyGoal} theme={theme} t={t} /><NutrientSummaryCard data={{ protein: { consumed: calculatedTotals.protein, goal: macroGoals.protein }, carbs: { consumed: calculatedTotals.carbs, goal: macroGoals.carbs }, fat: { consumed: calculatedTotals.fat, goal: macroGoals.fat }, fiber: { consumed: calculatedTotals.fiber, goal: NUTRIENT_GOALS.fiber }, sugar: { consumed: calculatedTotals.sugar, goal: NUTRIENT_GOALS.sugar }, sodium: { consumed: calculatedTotals.sodium, goal: NUTRIENT_GOALS.sodium }, }} theme={theme} t={t} isRTL={isRTL} /><DashboardGrid weight={dailyData.displayWeight || 0} water={dailyData.water || 0} waterGoal={waterGoal} totalExerciseCalories={totalExerciseCalories} onWeightPress={() => navigation.navigate('Weight')} onWaterPress={() => navigation.navigate('Water', { dateKey: formatDateKey(selectedDate) })} onWorkoutPress={() => navigation.navigate('WorkoutLog', { dateKey: formatDateKey(selectedDate) })} navigation={navigation} theme={theme} t={t} isRTL={isRTL} /><DailyFoodLog items={allFoodItems} onPress={() => navigation.navigate('FoodLogDetail', { items: allFoodItems, dateString: selectedDate.toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) })} theme={theme} t={t} isRTL={isRTL} /><View style={styles.sectionHeaderContainer(isRTL)}><Text style={styles.sectionTitle(theme, isRTL)}>{t('mealSectionsTitle')}</Text><Text style={styles.sectionDescription(theme, isRTL)}>{t('mealSectionsDesc')}</Text></View><MealLoggingSection title={t('breakfast')} iconName="sunny-outline" items={dailyData.breakfast || []} onAddPress={handleOpenModal} mealKey="breakfast" isEditable={isToday} theme={theme} t={t} isRTL={isRTL} /><MealLoggingSection title={t('lunch')} iconName="partly-sunny-outline" items={dailyData.lunch || []} onAddPress={handleOpenModal} mealKey="lunch" isEditable={isToday} theme={theme} t={t} isRTL={isRTL} /><MealLoggingSection title={t('dinner')} iconName="moon-outline" items={dailyData.dinner || []} onAddPress={handleOpenModal} mealKey="dinner" isEditable={isToday} theme={theme} t={t} isRTL={isRTL} /><MealLoggingSection title={t('snacks')} iconName="nutrition-outline" items={dailyData.snacks || []} onAddPress={handleOpenModal} mealKey="snacks" isEditable={isToday} theme={theme} t={t} isRTL={isRTL} /></ScrollView></SafeAreaView> ); 
+    return ( <SafeAreaView style={styles.rootContainer(theme)}><StatusBar barStyle={theme.statusBar} backgroundColor={theme.background} /><AddFoodModal visible={isFoodModalVisible} onClose={() => setFoodModalVisible(false)} onFoodSelect={handleFoodSelectedFromModal} mealKey={currentMealKey} theme={theme} t={t} isRTL={isRTL} /><ScrollView contentContainerStyle={styles.container}><DateNavigator selectedDate={selectedDate} onDateSelect={setSelectedDate} referenceToday={referenceToday} theme={theme} t={t} isRTL={isRTL} language={language} />{!isToday && (<View style={styles.readOnlyBanner(theme, isRTL)}><Ionicons name="information-circle-outline" size={20} color={theme.white} style={{ [isRTL ? 'marginLeft' : 'marginRight']: 8 }} /><Text style={styles.readOnlyBannerText(theme, isRTL)}>{t('readOnlyBanner')}</Text></View>)}<SummaryCard data={{ food: calculatedTotals.food, exercise: totalExerciseCalories }} dailyGoal={dailyGoal} theme={theme} t={t} isRTL={isRTL} /><NutrientSummaryCard data={{ protein: { consumed: calculatedTotals.protein, goal: macroGoals.protein }, carbs: { consumed: calculatedTotals.carbs, goal: macroGoals.carbs }, fat: { consumed: calculatedTotals.fat, goal: macroGoals.fat }, fiber: { consumed: calculatedTotals.fiber, goal: NUTRIENT_GOALS.fiber }, sugar: { consumed: calculatedTotals.sugar, goal: NUTRIENT_GOALS.sugar }, sodium: { consumed: calculatedTotals.sodium, goal: NUTRIENT_GOALS.sodium }, }} theme={theme} t={t} isRTL={isRTL} /><DashboardGrid weight={dailyData.displayWeight || 0} water={dailyData.water || 0} waterGoal={waterGoal} totalExerciseCalories={totalExerciseCalories} onWeightPress={() => navigation.navigate('Weight')} onWaterPress={() => navigation.navigate('Water', { dateKey: formatDateKey(selectedDate) })} onWorkoutPress={() => navigation.navigate('WorkoutLog', { dateKey: formatDateKey(selectedDate) })} navigation={navigation} theme={theme} t={t} isRTL={isRTL} /><DailyFoodLog items={allFoodItems} onPress={() => navigation.navigate('FoodLogDetail', { items: allFoodItems, dateString: selectedDate.toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) })} theme={theme} t={t} isRTL={isRTL} /><View style={styles.sectionHeaderContainer(isRTL)}><Text style={styles.sectionTitle(theme, isRTL)}>{t('mealSectionsTitle')}</Text><Text style={styles.sectionDescription(theme, isRTL)}>{t('mealSectionsDesc')}</Text></View><MealLoggingSection title={t('breakfast')} iconName="sunny-outline" items={dailyData.breakfast || []} onAddPress={handleOpenModal} mealKey="breakfast" isEditable={isToday} theme={theme} t={t} isRTL={isRTL} /><MealLoggingSection title={t('lunch')} iconName="partly-sunny-outline" items={dailyData.lunch || []} onAddPress={handleOpenModal} mealKey="lunch" isEditable={isToday} theme={theme} t={t} isRTL={isRTL} /><MealLoggingSection title={t('dinner')} iconName="moon-outline" items={dailyData.dinner || []} onAddPress={handleOpenModal} mealKey="dinner" isEditable={isToday} theme={theme} t={t} isRTL={isRTL} /><MealLoggingSection title={t('snacks')} iconName="nutrition-outline" items={dailyData.snacks || []} onAddPress={handleOpenModal} mealKey="snacks" isEditable={isToday} theme={theme} t={t} isRTL={isRTL} /></ScrollView></SafeAreaView> ); 
 }
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
@@ -354,7 +359,7 @@ const MagicLineTabBar = ({ state, descriptors, navigation, theme, t, isRTL }) =>
     const routes = isRTL ? [...state.routes].reverse() : state.routes;
 
     return (
-        <View style={styles.tabBarContainer(theme)}>
+        <View style={styles.tabBarContainer(theme, isRTL)}>
             <View style={styles.animationWrapper}><LeafAnimation trigger={state.index} /></View>
             
             <Animated.View style={[styles.indicatorContainer, { width: TAB_WIDTH }, indicatorAnimatedStyle]}>
@@ -401,7 +406,7 @@ const MagicLineTabBar = ({ state, descriptors, navigation, theme, t, isRTL }) =>
                                 />
                             )}
                         </Animated.View>
-                        <Animated.Text style={[styles.tabText(theme), textAnimatedStyle]}>{options.tabBarLabel}</Animated.Text>
+                        <Animated.Text style={[styles.tabText(theme, isRTL), textAnimatedStyle]}>{options.tabBarLabel}</Animated.Text>
                     </TouchableOpacity>
                 );
             })}
@@ -415,17 +420,17 @@ const DiaryStack = createStackNavigator();
 const ReportsStack = createStackNavigator();
 const ProfileStack = createStackNavigator();
 
-const commonStackOptions = (theme) => ({ 
+const commonStackOptions = (theme, isRTL) => ({ 
   headerStyle: { backgroundColor: theme.card, elevation: 0, shadowOpacity: 0 }, 
   headerTintColor: theme.textPrimary, 
-  headerTitleStyle: { fontWeight: 'bold' }, 
+  headerTitleStyle: { fontWeight: 'bold', fontFamily: isRTL ? 'Cairo-Regular' : undefined }, 
   headerTitleAlign: 'center',
   cardStyle: { flex: 1, backgroundColor: theme.background }, 
 });
 
 function DiaryStackNavigator({ setHasProgress, theme, t, isRTL, language }) { 
   return ( 
-    <DiaryStack.Navigator screenOptions={commonStackOptions(theme)}>
+    <DiaryStack.Navigator screenOptions={commonStackOptions(theme, isRTL)}>
       <DiaryStack.Screen name="DiaryHome" options={{ headerShown: false }}>
         {props => <DiaryScreen {...props} setHasProgress={setHasProgress} theme={theme} t={t} isRTL={isRTL} language={language} />}
       </DiaryStack.Screen>
@@ -439,8 +444,9 @@ function DiaryStackNavigator({ setHasProgress, theme, t, isRTL, language }) {
 }
 
 function ReportsStackNavigator({ theme, language }) { 
+  const isRTL = language === 'ar';
   return ( 
-    <ReportsStack.Navigator screenOptions={commonStackOptions(theme)}>
+    <ReportsStack.Navigator screenOptions={commonStackOptions(theme, isRTL)}>
       <ReportsStack.Screen name="ReportsHome" options={{ headerShown: false }}>
         {props => <ReportsScreen {...props} appLanguage={language} />}
       </ReportsStack.Screen>
@@ -450,7 +456,7 @@ function ReportsStackNavigator({ theme, language }) {
 
 function ProfileStackNavigator({ theme, t, onThemeChange, appLanguage, isRTL }) {
   return (
-    <ProfileStack.Navigator screenOptions={commonStackOptions(theme)}>
+    <ProfileStack.Navigator screenOptions={commonStackOptions(theme, isRTL)}>
       <ProfileStack.Screen name="ProfileHome" component={ProfileScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="EditProfile" component={EditProfileScreen} options={{ headerShown: false }} />
       <ProfileStack.Screen name="Settings" options={{ headerShown: false }}>
@@ -461,12 +467,13 @@ function ProfileStackNavigator({ theme, t, onThemeChange, appLanguage, isRTL }) 
   );
 }
 
-function MainUIScreen({ appLanguage }) {
+// تم تغيير اسم المكون الأصلي ليعمل بشكل داخلي فقط
+function AppNavigator({ appLanguage }) {
   const [theme, setTheme] = useState(lightTheme);
-  const [language, setLanguage] = useState(appLanguage);
-  const [isRTL, setIsRTL] = useState(I18nManager.isRTL);
-  const [hasProgress, setHasProgress] = useState(false);
+  const language = appLanguage;
+  const isRTL = appLanguage === 'ar';
   
+  const [hasProgress, setHasProgress] = useState(false);
   const navState = useNavigationState(state => state);
 
   useFocusEffect(
@@ -496,11 +503,6 @@ function MainUIScreen({ appLanguage }) {
     }, [navState])
   );
   
-  useEffect(() => { 
-    setLanguage(appLanguage); 
-    setIsRTL(appLanguage === 'ar'); 
-  }, [appLanguage]);
-
   const handleThemeChange = async (isDark) => {
     const newTheme = isDark ? darkTheme : lightTheme;
     setTheme(newTheme);
@@ -567,70 +569,83 @@ function MainUIScreen({ appLanguage }) {
   );
 }
 
+// هذا المكون هو "الواجهة" الجديدة، يقوم بتحميل الخط وتطبيق RTL ثم يعرض التطبيق
+function MainUIScreen(props) {
+  const { appLanguage } = props;
+
+  const [fontsLoaded] = useFonts({
+    'Cairo-Regular': require('./assets/Cairo-Regular.ttf'),
+  });
+
+  useEffect(() => {
+    const isArabic = appLanguage === 'ar';
+    if (I18nManager.isRTL !== isArabic) {
+        I18nManager.forceRTL(isArabic);
+        // ملاحظة مهمة: في الـ APK النهائي قد تحتاج لإعادة تحميل التطبيق
+        // لتطبيق تغيير الاتجاه بشكل كامل باستخدام Updates.reloadAsync()
+    }
+  }, [appLanguage]);
+  
+  useEffect(() => {
+    async function prepare() {
+      if (fontsLoaded) {
+        await SplashScreen.hideAsync();
+      }
+    }
+    prepare();
+  }, [fontsLoaded]);
+
+  if (!fontsLoaded) {
+    return null; // لا تعرض أي شيء حتى يتم تحميل الخط
+  }
+  
+  return <AppNavigator {...props} />;
+}
+
 const styles = StyleSheet.create({ 
     rootContainer: (theme) => ({ flex: 1, backgroundColor: theme.background }), 
     container: { paddingHorizontal: 20, paddingBottom: 80 }, 
-    card: (theme) => ({ backgroundColor: theme.card, borderRadius: 20, padding: 20, marginBottom: 15 }), 
-    dateNavContainer: (theme) => ({ marginVertical: 10, backgroundColor: theme.card, borderRadius: 20, paddingVertical: 15, paddingHorizontal: 10 }), 
-    dateNavHeader: (isRTL) => ({
-        flexDirection: isRTL ? 'row-reverse' : 'row',
-        justifyContent: 'space-between',
-        alignItems: 'center',
-        marginBottom: 15,
-        paddingHorizontal: 5,
-    }),
+    card: (theme, isRTL) => ({ backgroundColor: theme.card, borderRadius: 20, padding: 20, marginBottom: 15 }), 
+    dateNavContainer: (theme, isRTL) => ({ marginVertical: 10, backgroundColor: theme.card, borderRadius: 20, paddingVertical: 15, paddingHorizontal: 10 }), 
+    dateNavHeader: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, paddingHorizontal: 5 }),
     arrowButton: { padding: 5 }, 
-    dateNavMonthText: (theme) => ({
-        flex: 1,
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: theme.textPrimary,
-        textAlign: 'center',
-        marginHorizontal: 10,
-    }), 
-    weekContainer: (isRTL) => ({
-        flexDirection: isRTL ? 'row-reverse' : 'row',
-        justifyContent: 'space-around',
-        marginBottom: 10
-    }),
-    weekDayText: (theme) => ({ fontSize: 14, color: theme.textSecondary, fontWeight: '500', width: 40, textAlign: 'center' }), 
-    datesContainer: (isRTL) => ({
-        flexDirection: isRTL ? 'row-reverse' : 'row',
-        justifyContent: 'space-around'
-    }), 
+    dateNavMonthText: (theme, isRTL) => ({ flex: 1, fontSize: 18, fontWeight: 'bold', color: theme.textPrimary, textAlign: 'center', marginHorizontal: 10, fontFamily: isRTL ? 'Cairo-Regular' : undefined }), 
+    weekContainer: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-around', marginBottom: 10 }),
+    weekDayText: (theme, isRTL) => ({ fontSize: 14, color: theme.textSecondary, fontWeight: '500', width: 40, textAlign: 'center', fontFamily: isRTL ? 'Cairo-Regular' : undefined }), 
+    datesContainer: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-around' }), 
     dateCircle: { width: 40, height: 40, borderRadius: 21, justifyContent: 'center', alignItems: 'center' },
-    dateText: (theme) => ({ fontSize: 16, color: theme.textPrimary, fontWeight: '600' }), 
+    dateText: (theme, isRTL) => ({ fontSize: 16, color: theme.textPrimary, fontWeight: '600', fontFamily: isRTL ? 'Cairo-Regular' : undefined }), 
     activeText: (theme) => ({ color: theme.white }), 
     disabledDateText: (theme) => ({ color: theme.disabled }), 
     summaryCircleContainer: { justifyContent: 'center', position: 'relative' }, 
     summaryTextContainer: { position: 'absolute', alignItems: 'center', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center' }, 
-    remainingCaloriesText: (theme) => ({ fontSize: 42, fontWeight: 'bold', color: theme.textPrimary }), 
-    remainingLabel: (theme) => ({ fontSize: 14, color: theme.textSecondary }), 
+    remainingCaloriesText: (theme, isRTL) => ({ fontSize: 42, fontWeight: 'bold', color: theme.textPrimary, fontFamily: isRTL ? 'Cairo-Regular' : undefined }), 
+    remainingLabel: (theme, isRTL) => ({ fontSize: 14, color: theme.textSecondary, fontFamily: isRTL ? 'Cairo-Regular' : undefined }), 
     progressIndicatorDot: (theme) => ({ position: 'absolute', top: 0, left: 0, backgroundColor: theme.indicatorDot, borderWidth: 3, borderColor: theme.card }), 
     sectionHeaderContainer: (isRTL) => ({ marginTop: 15, marginBottom: 10, alignItems: isRTL ? 'flex-end' : 'flex-start' }),
-    sectionTitle: (theme, isRTL) => ({ fontSize: 22, fontWeight: 'bold', color: theme.textPrimary, textAlign: isRTL ? 'right' : 'left', marginBottom: 0, flexShrink: 1 }),
-    sectionDescription: (theme, isRTL) => ({ fontSize: 14, color: theme.textSecondary, textAlign: isRTL ? 'right' : 'left' }),
+    sectionTitle: (theme, isRTL) => ({ fontSize: 22, fontWeight: 'bold', color: theme.textPrimary, textAlign: isRTL ? 'right' : 'left', marginBottom: 0, flexShrink: 1, fontFamily: isRTL ? 'Cairo-Regular' : undefined, writingDirection: isRTL ? 'rtl' : 'ltr' }),
+    sectionDescription: (theme, isRTL) => ({ fontSize: 14, color: theme.textSecondary, textAlign: isRTL ? 'right' : 'left', fontFamily: isRTL ? 'Cairo-Regular' : undefined, writingDirection: isRTL ? 'rtl' : 'ltr' }),
     mealSectionHeader: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, paddingBottom: 10, }),
     mealSectionHeaderLeft: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }),
     mealIcon: (isRTL) => ({ [isRTL ? 'marginLeft' : 'marginRight']: 10 }),
-    mealSectionTitle: (theme) => ({ fontSize: 22, fontWeight: 'bold', color: theme.textPrimary }), 
-    mealSectionTotalCalories: (theme) => ({ fontSize: 16, color: theme.textSecondary, fontWeight: '600' }), 
+    mealSectionTitle: (theme, isRTL) => ({ fontSize: 22, fontWeight: 'bold', color: theme.textPrimary, fontFamily: isRTL ? 'Cairo-Regular' : undefined }), 
+    mealSectionTotalCalories: (theme, isRTL) => ({ fontSize: 16, color: theme.textSecondary, fontWeight: '600', fontFamily: isRTL ? 'Cairo-Regular' : undefined }), 
     mealMacrosContainer: (theme, isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'flex-start', alignItems: 'center', marginTop: 15, paddingTop: 10, borderTopWidth: 1, borderTopColor: theme.background, flexWrap: 'wrap' }), 
     macroSummaryItem: (isRTL) => ({ [isRTL ? 'marginLeft' : 'marginRight']: 20, marginBottom: 5 }), 
-    macroSummaryText: (theme) => ({ fontSize: 13, color: theme.textSecondary, fontWeight: '600' }), 
+    macroSummaryText: (theme, isRTL) => ({ fontSize: 13, color: theme.textSecondary, fontWeight: '600', fontFamily: isRTL ? 'Cairo-Regular' : undefined }), 
     smartAddButton: (theme) => ({ marginTop: 15, paddingVertical: 15, borderRadius: 15, backgroundColor: theme.primary, alignItems: 'center', justifyContent: 'center', width: '100%' }), 
-    smartAddButtonText: (theme) => ({ color: theme.white, fontSize: 18, fontWeight: 'bold' }), 
+    smartAddButtonText: (theme, isRTL) => ({ color: theme.white, fontSize: 18, fontWeight: 'bold', fontFamily: isRTL ? 'Cairo-Regular' : undefined }), 
     disabledButton: (theme) => ({ backgroundColor: theme.disabled }), 
     readOnlyBanner: (theme, isRTL) => ({ backgroundColor: theme.readOnlyBanner, borderRadius: 10, padding: 10, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginBottom: 15 }), 
-    readOnlyBannerText: (theme, isRTL) => ({ color: theme.white, fontSize: 14, fontWeight: 'bold', flex: 1, textAlign: isRTL ? 'right' : 'left' }), 
+    readOnlyBannerText: (theme, isRTL) => ({ color: theme.white, fontSize: 14, fontWeight: 'bold', flex: 1, textAlign: isRTL ? 'right' : 'left', fontFamily: isRTL ? 'Cairo-Regular' : undefined, writingDirection: isRTL ? 'rtl' : 'ltr' }), 
     nutrientRowHeader: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, }),
     nutrientRowContainer: { marginBottom: 15, }, 
-    nutrientRowLabel: (theme) => ({ fontSize: 16, color: theme.textPrimary, fontWeight: '600', }), 
-    nutrientRowValue: (theme) => ({ fontSize: 14, color: theme.textSecondary, }), 
-    tabBarContainer: (theme) => ({ position: 'absolute', bottom: 0, left: 0, right: 0, height: 70, flexDirection: 'row', backgroundColor: theme.tabBarBackground }),
+    nutrientRowLabel: (theme, isRTL) => ({ fontSize: 16, color: theme.textPrimary, fontWeight: '600', fontFamily: isRTL ? 'Cairo-Regular' : undefined }), 
+    nutrientRowValue: (theme, isRTL) => ({ fontSize: 14, color: theme.textSecondary, fontFamily: isRTL ? 'Cairo-Regular' : undefined }), 
+    tabBarContainer: (theme, isRTL) => ({ position: 'absolute', bottom: 0, left: 0, right: 0, height: 70, flexDirection: 'row', backgroundColor: theme.tabBarBackground }),
     tabItem: { height: 70, justifyContent: 'center', alignItems: 'center' }, 
     tabIconContainer: { width: 60, height: 60, justifyContent: 'center', alignItems: 'center', },
-    tabText: (theme) => ({ position: 'absolute', color: theme.tabBarIcon, fontSize: 12, fontWeight: '400' }), 
+    tabText: (theme, isRTL) => ({ position: 'absolute', color: theme.tabBarIcon, fontSize: 12, fontWeight: '400', fontFamily: isRTL ? 'Cairo-Regular' : undefined }), 
     indicatorContainer: { position: 'absolute', top: -35, left: 0, height: INDICATOR_DIAMETER, alignItems: 'center', zIndex: 0 }, 
     indicator: (theme) => ({ width: INDICATOR_DIAMETER, height: INDICATOR_DIAMETER, borderRadius: INDICATOR_DIAMETER / 2, borderWidth: 6, borderColor: theme.background }), 
     cutout: { position: 'absolute', top: '50%', width: 20, height: 20, backgroundColor: 'transparent', shadowOpacity: 1, shadowRadius: 0 }, 
@@ -641,39 +656,39 @@ const styles = StyleSheet.create({
     leafAnimationContainer: { position: 'absolute', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center', pointerEvents: 'none', }, 
     leafImage: { width: '100%', height: 50, resizeMode: 'cover', }, 
     modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }, 
-    modalView: (theme) => ({ width: '90%', maxHeight: '80%', backgroundColor: theme.background, borderRadius: 20, padding: 0, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 5, overflow: 'hidden' }), 
+    modalView: (theme, isRTL) => ({ width: '90%', maxHeight: '80%', backgroundColor: theme.background, borderRadius: 20, padding: 0, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 5, overflow: 'hidden' }), 
     modalHeader: (theme, isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderBottomColor: '#eee', backgroundColor: theme.card }), 
-    modalTitle: (theme) => ({ fontSize: 20, fontWeight: 'bold', color: theme.textPrimary }), 
+    modalTitle: (theme, isRTL) => ({ fontSize: 20, fontWeight: 'bold', color: theme.textPrimary, fontFamily: isRTL ? 'Cairo-Regular' : undefined }), 
     searchContainer: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', padding: 15, backgroundColor: 'transparent' }), 
-    searchInput: (theme, isRTL) => ({ flex: 1, height: 50, backgroundColor: theme.background, borderRadius: 10, paddingHorizontal: 15, fontSize: 16, textAlign: isRTL ? 'right' : 'left', color: theme.textPrimary }), 
+    searchInput: (theme, isRTL) => ({ flex: 1, height: 50, backgroundColor: theme.background, borderRadius: 10, paddingHorizontal: 15, fontSize: 16, textAlign: isRTL ? 'right' : 'left', color: theme.textPrimary, fontFamily: isRTL ? 'Cairo-Regular' : undefined, writingDirection: isRTL ? 'rtl' : 'ltr' }), 
     searchButton: (theme, isRTL) => ({ width: 50, height: 50, backgroundColor: theme.primary, borderRadius: 10, justifyContent: 'center', alignItems: 'center', [isRTL ? 'marginRight' : 'marginLeft']: 10 }), 
     resultItem: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'transparent', padding: 20, borderBottomWidth: 1, borderBottomColor: '#eee' }), 
-    foodName: (theme) => ({ fontSize: 16, color: theme.textPrimary }), 
-    emptyText: (theme) => ({ textAlign: 'center', marginTop: 50, fontSize: 16, color: theme.textSecondary }), 
+    foodName: (theme, isRTL) => ({ fontSize: 16, color: theme.textPrimary, fontFamily: isRTL ? 'Cairo-Regular' : undefined, writingDirection: isRTL ? 'rtl' : 'ltr' }), 
+    emptyText: (theme, isRTL) => ({ textAlign: 'center', marginTop: 50, fontSize: 16, color: theme.textSecondary, fontFamily: isRTL ? 'Cairo-Regular' : undefined }), 
     dashboardGridContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, flexWrap: 'wrap', rowGap: 15, }, 
-    smallCard: (theme) => ({ width: '48.5%', backgroundColor: theme.card, borderRadius: 20, padding: 15, minHeight: 120, justifyContent: 'space-between', }), 
+    smallCard: (theme, isRTL) => ({ width: '48.5%', backgroundColor: theme.card, borderRadius: 20, padding: 15, minHeight: 120, justifyContent: 'space-between' }), 
     smallCardHeader: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', }), 
     smallCardIconContainer: (theme) => ({ width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.progressUnfilled }), 
-    smallCardTitle: (theme, isRTL) => ({ fontSize: 16, fontWeight: '600', color: theme.textPrimary, [isRTL ? 'marginRight' : 'marginLeft']: 8 }), 
-    smallCardValue: (theme, isRTL) => ({ fontSize: 28, fontWeight: 'bold', color: theme.textPrimary, textAlign: isRTL ? 'right' : 'left', }), 
-    smallCardSubValue: (theme, isRTL) => ({ fontSize: 14, color: theme.textSecondary, textAlign: isRTL ? 'right' : 'left', marginTop: -5, }), 
+    smallCardTitle: (theme, isRTL) => ({ fontSize: 16, fontWeight: '600', color: theme.textPrimary, [isRTL ? 'marginRight' : 'marginLeft']: 8, fontFamily: isRTL ? 'Cairo-Regular' : undefined }), 
+    smallCardValue: (theme, isRTL) => ({ fontSize: 28, fontWeight: 'bold', color: theme.textPrimary, textAlign: isRTL ? 'right' : 'left', fontFamily: isRTL ? 'Cairo-Regular' : undefined }), 
+    smallCardSubValue: (theme, isRTL) => ({ fontSize: 14, color: theme.textSecondary, textAlign: isRTL ? 'right' : 'left', marginTop: -5, fontFamily: isRTL ? 'Cairo-Regular' : undefined }), 
     smallCardContent: (isRTL) => ({ alignItems: isRTL ? 'flex-end' : 'flex-start' }), 
     waterVisualizerContainer: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'flex-start', flexWrap: 'wrap', rowGap: 5, }), 
     waterDropIcon: { marginHorizontal: 1, }, 
     stepsCardContent: { flex: 1, justifyContent: 'center', alignItems: 'center' }, 
     stepsCardCircleContainer: { justifyContent: 'center', alignItems: 'center', marginVertical: 5, }, 
     stepsCardTextContainer: { position: 'absolute', }, 
-    stepsCardCountText: (theme) => ({ fontSize: 22, fontWeight: 'bold', color: theme.textPrimary, }), 
-    stepsCardGoalText: (theme) => ({ fontSize: 13, color: theme.textSecondary, marginTop: 2, }), 
+    stepsCardCountText: (theme, isRTL) => ({ fontSize: 22, fontWeight: 'bold', color: theme.textPrimary, fontFamily: isRTL ? 'Cairo-Regular' : undefined }), 
+    stepsCardGoalText: (theme, isRTL) => ({ fontSize: 13, color: theme.textSecondary, marginTop: 2, fontFamily: isRTL ? 'Cairo-Regular' : undefined }), 
     foodLogItemContainer: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' }), 
     foodLogItemImage: (isRTL) => ({ width: 50, height: 50, borderRadius: 10, [isRTL ? 'marginLeft' : 'marginRight']: 15, }), 
     foodLogItemImagePlaceholder: (theme, isRTL) => ({ width: 50, height: 50, borderRadius: 10, [isRTL ? 'marginLeft' : 'marginRight']: 15, backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center', }), 
     foodLogItemDetails: { flex: 1, }, 
     foodLogItemHeader: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, }), 
-    foodLogItemName: (theme, isRTL) => ({ fontSize: 16, fontWeight : '600', color: theme.textPrimary, flex: 1, textAlign: isRTL ? 'right' : 'left', }), 
-    foodLogItemCalories: (theme, isRTL) => ({ fontSize: 14, fontWeight: '500', color: theme.primary, [isRTL ? 'marginRight' : 'marginLeft']: 8, }), 
+    foodLogItemName: (theme, isRTL) => ({ fontSize: 16, fontWeight : '600', color: theme.textPrimary, flex: 1, textAlign: isRTL ? 'right' : 'left', fontFamily: isRTL ? 'Cairo-Regular' : undefined, writingDirection: isRTL ? 'rtl' : 'ltr' }), 
+    foodLogItemCalories: (theme, isRTL) => ({ fontSize: 14, fontWeight: '500', color: theme.primary, [isRTL ? 'marginRight' : 'marginLeft']: 8, fontFamily: isRTL ? 'Cairo-Regular' : undefined }), 
     foodLogItemMacros: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', flexWrap: 'wrap', marginTop: 6, }), 
-    macroText: (theme, isRTL) => ({ fontSize: 13, color: theme.textSecondary, [isRTL ? 'marginLeft' : 'marginRight']: 15, marginBottom: 4, }), 
+    macroText: (theme, isRTL) => ({ fontSize: 13, color: theme.textSecondary, [isRTL ? 'marginLeft' : 'marginRight']: 15, marginBottom: 4, fontFamily: isRTL ? 'Cairo-Regular' : undefined }), 
     dailyLogCard: { paddingVertical: 18, paddingHorizontal: 15, }, 
     dailyLogContentContainer: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', }), 
     dailyLogLeftContainer: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', }), 
@@ -681,7 +696,7 @@ const styles = StyleSheet.create({
     previewImage: (theme) => ({ width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: theme.card, backgroundColor: '#f0f0f0', }), 
     previewImagePlaceholder: (theme) => ({ justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }), 
     previewCounterCircle: (theme) => ({ width: 38, height: 38, borderRadius: 19, backgroundColor: theme.progressUnfilled, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: theme.card, }), 
-    previewCounterText: (theme) => ({ color: theme.primary, fontWeight: 'bold', fontSize: 12, }),
+    previewCounterText: (theme, isRTL) => ({ color: theme.primary, fontWeight: 'bold', fontSize: 12, fontFamily: isRTL ? 'Cairo-Regular' : undefined }),
 });
  
 export default MainUIScreen;
