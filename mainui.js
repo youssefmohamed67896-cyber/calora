@@ -1,3 +1,5 @@
+// mainui (1).js - الكود الكامل بعد إضافة الخط المخصص وتعديلات الأداء
+
 import 'react-native-url-polyfill/auto';
 import 'react-native-get-random-values';
 import 'react-native-gesture-handler';
@@ -17,6 +19,7 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
 import * as BackgroundFetch from 'expo-background-fetch';
+import { useFonts } from 'expo-font'; // <-- 1. استيراد أداة تحميل الخطوط
 
 // --- Screen Imports ---
 import ProfileScreen from './profile';
@@ -237,7 +240,6 @@ const SmallWorkoutCard = ({ totalCaloriesBurned = 0, onPress, theme, t, isRTL })
 const SmallStepsCard = ({ navigation, theme, t, isRTL }) => { const [status, setStatus] = useState('checking'); const [currentStepCount, setCurrentStepCount] = useState(0); const [stepsGoal, setStepsGoal] = useState(10000); useFocusEffect(useCallback(() => { const subscribe = async () => { const savedGoal = await AsyncStorage.getItem('stepsGoal'); if (savedGoal) setStepsGoal(parseInt(savedGoal, 10)); const isAvailable = await Pedometer.isAvailableAsync(); if (!isAvailable) { setStatus('unavailable'); return; } const { status: permissionStatus } = await Pedometer.requestPermissionsAsync(); if (permissionStatus !== 'granted') { setStatus('denied'); return; } const end = new Date(); const start = new Date(); start.setHours(0, 0, 0, 0); try { const pastStepCountResult = await Pedometer.getStepCountAsync(start, end); if (pastStepCountResult) setCurrentStepCount(pastStepCountResult.steps); setStatus('available'); } catch (error) { console.error("Pedometer error:", error); setStatus('unavailable'); } }; subscribe(); }, [])); const renderContent = () => { if (status === 'checking') return <ActivityIndicator style={{ marginTop: 20 }} color={theme.primary} />; if (status === 'unavailable' || status === 'denied') return <Text style={[styles.smallCardValue(theme, isRTL), { fontSize: 20, marginTop: 15 }]}>{t('unsupported')}</Text>; const progress = stepsGoal > 0 ? currentStepCount / stepsGoal : 0; return (<View style={styles.stepsCardContent}><View style={styles.stepsCardCircleContainer}><Progress.Circle size={80} progress={progress} showsText={false} color={theme.primary} unfilledColor={theme.progressUnfilled} borderWidth={0} thickness={8} /><View style={styles.stepsCardTextContainer}><Text style={styles.stepsCardCountText(theme)}>{currentStepCount.toLocaleString()}</Text></View></View><Text style={styles.stepsCardGoalText(theme)}>{t('goal')}{stepsGoal.toLocaleString()}</Text></View>); }; return (<TouchableOpacity style={styles.smallCard(theme)} onPress={() => navigation.navigate('Steps')}><View style={styles.smallCardHeader(isRTL)}><View style={[styles.smallCardIconContainer(theme)]}><MaterialCommunityIcons name="walk" size={20} color={theme.primary} /></View><Text style={styles.smallCardTitle(theme, isRTL)}>{t('steps')}</Text></View>{renderContent()}</TouchableOpacity>); };
 const DashboardGrid = ({ weight, water, waterGoal, totalExerciseCalories, onWeightPress, onWaterPress, onWorkoutPress, navigation, theme, t, isRTL }) => (<View style={styles.dashboardGridContainer}><SmallWeightCard weight={weight} onPress={onWeightPress} theme={theme} t={t} isRTL={isRTL} /><SmallWaterCard water={water} waterGoal={waterGoal} onPress={onWaterPress} theme={theme} t={t} isRTL={isRTL} /><SmallWorkoutCard totalCaloriesBurned={totalExerciseCalories} onPress={onWorkoutPress} theme={theme} t={t} isRTL={isRTL} /><SmallStepsCard navigation={navigation} theme={theme} t={t} isRTL={isRTL} /></View>);
 
-// <-- بداية التعديل على DiaryScreen
 function DiaryScreen({ navigation, route, setHasProgress, theme, t, isRTL, language }) { 
     const referenceToday = new Date(); 
     referenceToday.setHours(0, 0, 0, 0); 
@@ -249,11 +251,11 @@ function DiaryScreen({ navigation, route, setHasProgress, theme, t, isRTL, langu
     const [isFoodModalVisible, setFoodModalVisible] = useState(false); 
     const [currentMealKey, setCurrentMealKey] = useState(null); 
     const [waterGoal, setWaterGoal] = useState(8); 
-    const [isLoading, setIsLoading] = useState(true); // <-- 1. إضافة حالة التحميل
+    const [isLoading, setIsLoading] = useState(true);
     const isToday = formatDateKey(selectedDate) === formatDateKey(new Date()); 
 
     const loadAllData = useCallback(async () => { 
-        setIsLoading(true); // <-- 2. تفعيل مؤشر التحميل في بداية الدالة
+        setIsLoading(true);
         try { 
             let goalToSet = 2000;
             if (passedGoal) {
@@ -300,7 +302,7 @@ function DiaryScreen({ navigation, route, setHasProgress, theme, t, isRTL, langu
             setDailyData(EMPTY_DAY_DATA); 
             setDailyGoal(2000);
         } finally {
-            setIsLoading(false); // <-- 2. إيقاف مؤشر التحميل دائماً في النهاية
+            setIsLoading(false);
         }
     }, [selectedDate, passedGoal]);
 
@@ -314,8 +316,7 @@ function DiaryScreen({ navigation, route, setHasProgress, theme, t, isRTL, langu
     const calculatedTotals = allFoodItems.reduce((acc, item) => { return { food: acc.food + (item.calories || 0), protein: acc.protein + (item.p || 0), carbs: acc.carbs + (item.c || 0), fat: acc.fat + (item.f || 0), fiber: acc.fiber + (item.fib || 0), sugar: acc.sugar + (item.sug || 0), sodium: acc.sodium + (item.sod || 0), }; }, { food: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0 }); 
     const totalExerciseCalories = (dailyData.exercises || []).reduce((sum, ex) => sum + (ex.calories || 0), 0); 
     useEffect(() => { const progressMade = calculatedTotals.food > 0 || totalExerciseCalories > 0; setHasProgress(progressMade); }, [calculatedTotals.food, totalExerciseCalories, setHasProgress]); 
-
-    // <-- 3. إضافة شرط لعرض مؤشر التحميل إذا كانت البيانات لم تكتمل
+    
     if (isLoading) {
         return (
             <SafeAreaView style={styles.rootContainer(theme)}>
@@ -325,10 +326,9 @@ function DiaryScreen({ navigation, route, setHasProgress, theme, t, isRTL, langu
             </SafeAreaView>
         );
     }
-
+    
     return ( <SafeAreaView style={styles.rootContainer(theme)}><StatusBar barStyle={theme.statusBar} backgroundColor={theme.background} /><AddFoodModal visible={isFoodModalVisible} onClose={() => setFoodModalVisible(false)} onFoodSelect={handleFoodSelectedFromModal} mealKey={currentMealKey} theme={theme} t={t} isRTL={isRTL} /><ScrollView contentContainerStyle={styles.container}><DateNavigator selectedDate={selectedDate} onDateSelect={setSelectedDate} referenceToday={referenceToday} theme={theme} t={t} isRTL={isRTL} language={language} />{!isToday && (<View style={styles.readOnlyBanner(theme, isRTL)}><Ionicons name="information-circle-outline" size={20} color={theme.white} style={{ [isRTL ? 'marginLeft' : 'marginRight']: 8 }} /><Text style={styles.readOnlyBannerText(theme, isRTL)}>{t('readOnlyBanner')}</Text></View>)}<SummaryCard data={{ food: calculatedTotals.food, exercise: totalExerciseCalories }} dailyGoal={dailyGoal} theme={theme} t={t} /><NutrientSummaryCard data={{ protein: { consumed: calculatedTotals.protein, goal: macroGoals.protein }, carbs: { consumed: calculatedTotals.carbs, goal: macroGoals.carbs }, fat: { consumed: calculatedTotals.fat, goal: macroGoals.fat }, fiber: { consumed: calculatedTotals.fiber, goal: NUTRIENT_GOALS.fiber }, sugar: { consumed: calculatedTotals.sugar, goal: NUTRIENT_GOALS.sugar }, sodium: { consumed: calculatedTotals.sodium, goal: NUTRIENT_GOALS.sodium }, }} theme={theme} t={t} isRTL={isRTL} /><DashboardGrid weight={dailyData.displayWeight || 0} water={dailyData.water || 0} waterGoal={waterGoal} totalExerciseCalories={totalExerciseCalories} onWeightPress={() => navigation.navigate('Weight')} onWaterPress={() => navigation.navigate('Water', { dateKey: formatDateKey(selectedDate) })} onWorkoutPress={() => navigation.navigate('WorkoutLog', { dateKey: formatDateKey(selectedDate) })} navigation={navigation} theme={theme} t={t} isRTL={isRTL} /><DailyFoodLog items={allFoodItems} onPress={() => navigation.navigate('FoodLogDetail', { items: allFoodItems, dateString: selectedDate.toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) })} theme={theme} t={t} isRTL={isRTL} /><View style={styles.sectionHeaderContainer(isRTL)}><Text style={styles.sectionTitle(theme, isRTL)}>{t('mealSectionsTitle')}</Text><Text style={styles.sectionDescription(theme, isRTL)}>{t('mealSectionsDesc')}</Text></View><MealLoggingSection title={t('breakfast')} iconName="sunny-outline" items={dailyData.breakfast || []} onAddPress={handleOpenModal} mealKey="breakfast" isEditable={isToday} theme={theme} t={t} isRTL={isRTL} /><MealLoggingSection title={t('lunch')} iconName="partly-sunny-outline" items={dailyData.lunch || []} onAddPress={handleOpenModal} mealKey="lunch" isEditable={isToday} theme={theme} t={t} isRTL={isRTL} /><MealLoggingSection title={t('dinner')} iconName="moon-outline" items={dailyData.dinner || []} onAddPress={handleOpenModal} mealKey="dinner" isEditable={isToday} theme={theme} t={t} isRTL={isRTL} /><MealLoggingSection title={t('snacks')} iconName="nutrition-outline" items={dailyData.snacks || []} onAddPress={handleOpenModal} mealKey="snacks" isEditable={isToday} theme={theme} t={t} isRTL={isRTL} /></ScrollView></SafeAreaView> ); 
 }
-// <-- نهاية التعديل على DiaryScreen
 
 const { width: SCREEN_WIDTH } = Dimensions.get('window');
 const INDICATOR_DIAMETER = 70;
@@ -482,12 +482,42 @@ function ProfileStackNavigator({ theme, t, onThemeChange, appLanguage, isRTL }) 
 }
 
 function MainUIScreen({ appLanguage }) {
+  // <-- 2. تحميل الخط المخصص عند بداية التطبيق
+  const [fontsLoaded] = useFonts({
+    'Cairo-Regular': require('./assets/Cairo-Regular.ttf'),
+  });
+
   const [theme, setTheme] = useState(lightTheme);
   const [language, setLanguage] = useState(appLanguage);
   const [isRTL, setIsRTL] = useState(I18nManager.isRTL);
   const [hasProgress, setHasProgress] = useState(false);
+  const fontApplied = useRef(false);
   
   const navState = useNavigationState(state => state);
+  
+  // <-- 3. تطبيق الخط بشكل شامل على كل النصوص بعد تحميله
+  useEffect(() => {
+    if (fontsLoaded && !fontApplied.current) {
+        const defaultFontFamily = { fontFamily: 'Cairo-Regular' };
+
+        const oldTextRender = Text.render;
+        Text.render = function (...args) {
+            const origin = oldTextRender.call(this, ...args);
+            return React.cloneElement(origin, {
+                style: [defaultFontFamily, origin.props.style]
+            });
+        };
+
+        const oldTextInputRender = TextInput.render;
+        TextInput.render = function (...args) {
+            const origin = oldTextInputRender.call(this, ...args);
+            return React.cloneElement(origin, {
+                style: [defaultFontFamily, origin.props.style]
+            });
+        };
+        fontApplied.current = true;
+    }
+  }, [fontsLoaded]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -556,6 +586,17 @@ function MainUIScreen({ appLanguage }) {
     };
     setupInitialTasks();
   }, []);
+
+  // <-- 4. عرض شاشة تحميل أثناء تحميل الخط
+  if (!fontsLoaded) {
+    return (
+      <SafeAreaView style={{ flex: 1, backgroundColor: lightTheme.background }}>
+        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
+          <ActivityIndicator size="large" color={lightTheme.primary} />
+        </View>
+      </SafeAreaView>
+    );
+  }
 
   return (
     <Tab.Navigator
