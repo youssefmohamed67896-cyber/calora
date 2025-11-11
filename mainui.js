@@ -1,11 +1,14 @@
-// mainui (1).js - الكود الكامل بعد إضافة الخط المخصص وتعديلات الأداء
-
 import 'react-native-url-polyfill/auto';
 import 'react-native-get-random-values';
 import 'react-native-gesture-handler';
 
 import React, { useState, useEffect, useCallback, useRef } from 'react';
 import { StyleSheet, View, Text, ScrollView, SafeAreaView, TouchableOpacity, Dimensions, Image, Platform, TextInput, FlatList, ActivityIndicator, Alert, Modal, StatusBar, I18nManager, BackHandler } from 'react-native';
+
+// --- إضافة المكتبات اللازمة لتحميل الخطوط ---
+import * as Font from 'expo-font';
+import AppLoading from 'expo-app-loading';
+
 import { createBottomTabNavigator } from '@react-navigation/bottom-tabs';
 import { useFocusEffect, useNavigationState, getFocusedRouteNameFromRoute } from '@react-navigation/native';
 import { Ionicons, MaterialCommunityIcons } from '@expo/vector-icons';
@@ -19,7 +22,6 @@ import * as Device from 'expo-device';
 import * as Notifications from 'expo-notifications';
 import * as TaskManager from 'expo-task-manager';
 import * as BackgroundFetch from 'expo-background-fetch';
-import { useFonts } from 'expo-font'; // <-- 1. استيراد أداة تحميل الخطوط
 
 // --- Screen Imports ---
 import ProfileScreen from './profile';
@@ -205,7 +207,7 @@ const NutrientRow = ({ label, consumed, goal, color, unit = 'جم', isLimit = fa
                 {isRTL ? (
                     <>
                         <Text style={styles.nutrientRowValue(theme)}>{valueText}</Text>
-                        <Text style={styles.nutrientRowLabel(theme)}>{label}</Text>
+                        <Text style={[styles.nutrientRowLabel(theme), { writingDirection: 'rtl' }]}>{label}</Text>
                     </>
                 ) : (
                     <>
@@ -316,7 +318,7 @@ function DiaryScreen({ navigation, route, setHasProgress, theme, t, isRTL, langu
     const calculatedTotals = allFoodItems.reduce((acc, item) => { return { food: acc.food + (item.calories || 0), protein: acc.protein + (item.p || 0), carbs: acc.carbs + (item.c || 0), fat: acc.fat + (item.f || 0), fiber: acc.fiber + (item.fib || 0), sugar: acc.sugar + (item.sug || 0), sodium: acc.sodium + (item.sod || 0), }; }, { food: 0, protein: 0, carbs: 0, fat: 0, fiber: 0, sugar: 0, sodium: 0 }); 
     const totalExerciseCalories = (dailyData.exercises || []).reduce((sum, ex) => sum + (ex.calories || 0), 0); 
     useEffect(() => { const progressMade = calculatedTotals.food > 0 || totalExerciseCalories > 0; setHasProgress(progressMade); }, [calculatedTotals.food, totalExerciseCalories, setHasProgress]); 
-    
+
     if (isLoading) {
         return (
             <SafeAreaView style={styles.rootContainer(theme)}>
@@ -326,7 +328,7 @@ function DiaryScreen({ navigation, route, setHasProgress, theme, t, isRTL, langu
             </SafeAreaView>
         );
     }
-    
+
     return ( <SafeAreaView style={styles.rootContainer(theme)}><StatusBar barStyle={theme.statusBar} backgroundColor={theme.background} /><AddFoodModal visible={isFoodModalVisible} onClose={() => setFoodModalVisible(false)} onFoodSelect={handleFoodSelectedFromModal} mealKey={currentMealKey} theme={theme} t={t} isRTL={isRTL} /><ScrollView contentContainerStyle={styles.container}><DateNavigator selectedDate={selectedDate} onDateSelect={setSelectedDate} referenceToday={referenceToday} theme={theme} t={t} isRTL={isRTL} language={language} />{!isToday && (<View style={styles.readOnlyBanner(theme, isRTL)}><Ionicons name="information-circle-outline" size={20} color={theme.white} style={{ [isRTL ? 'marginLeft' : 'marginRight']: 8 }} /><Text style={styles.readOnlyBannerText(theme, isRTL)}>{t('readOnlyBanner')}</Text></View>)}<SummaryCard data={{ food: calculatedTotals.food, exercise: totalExerciseCalories }} dailyGoal={dailyGoal} theme={theme} t={t} /><NutrientSummaryCard data={{ protein: { consumed: calculatedTotals.protein, goal: macroGoals.protein }, carbs: { consumed: calculatedTotals.carbs, goal: macroGoals.carbs }, fat: { consumed: calculatedTotals.fat, goal: macroGoals.fat }, fiber: { consumed: calculatedTotals.fiber, goal: NUTRIENT_GOALS.fiber }, sugar: { consumed: calculatedTotals.sugar, goal: NUTRIENT_GOALS.sugar }, sodium: { consumed: calculatedTotals.sodium, goal: NUTRIENT_GOALS.sodium }, }} theme={theme} t={t} isRTL={isRTL} /><DashboardGrid weight={dailyData.displayWeight || 0} water={dailyData.water || 0} waterGoal={waterGoal} totalExerciseCalories={totalExerciseCalories} onWeightPress={() => navigation.navigate('Weight')} onWaterPress={() => navigation.navigate('Water', { dateKey: formatDateKey(selectedDate) })} onWorkoutPress={() => navigation.navigate('WorkoutLog', { dateKey: formatDateKey(selectedDate) })} navigation={navigation} theme={theme} t={t} isRTL={isRTL} /><DailyFoodLog items={allFoodItems} onPress={() => navigation.navigate('FoodLogDetail', { items: allFoodItems, dateString: selectedDate.toLocaleDateString(language === 'ar' ? 'ar-EG' : 'en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }) })} theme={theme} t={t} isRTL={isRTL} /><View style={styles.sectionHeaderContainer(isRTL)}><Text style={styles.sectionTitle(theme, isRTL)}>{t('mealSectionsTitle')}</Text><Text style={styles.sectionDescription(theme, isRTL)}>{t('mealSectionsDesc')}</Text></View><MealLoggingSection title={t('breakfast')} iconName="sunny-outline" items={dailyData.breakfast || []} onAddPress={handleOpenModal} mealKey="breakfast" isEditable={isToday} theme={theme} t={t} isRTL={isRTL} /><MealLoggingSection title={t('lunch')} iconName="partly-sunny-outline" items={dailyData.lunch || []} onAddPress={handleOpenModal} mealKey="lunch" isEditable={isToday} theme={theme} t={t} isRTL={isRTL} /><MealLoggingSection title={t('dinner')} iconName="moon-outline" items={dailyData.dinner || []} onAddPress={handleOpenModal} mealKey="dinner" isEditable={isToday} theme={theme} t={t} isRTL={isRTL} /><MealLoggingSection title={t('snacks')} iconName="nutrition-outline" items={dailyData.snacks || []} onAddPress={handleOpenModal} mealKey="snacks" isEditable={isToday} theme={theme} t={t} isRTL={isRTL} /></ScrollView></SafeAreaView> ); 
 }
 
@@ -429,7 +431,6 @@ const MagicLineTabBar = ({ state, descriptors, navigation, theme, t, isRTL }) =>
     );
 };
 
-
 const Tab = createBottomTabNavigator();
 const DiaryStack = createStackNavigator();
 const ReportsStack = createStackNavigator();
@@ -481,43 +482,15 @@ function ProfileStackNavigator({ theme, t, onThemeChange, appLanguage, isRTL }) 
   );
 }
 
-function MainUIScreen({ appLanguage }) {
-  // <-- 2. تحميل الخط المخصص عند بداية التطبيق
-  const [fontsLoaded] = useFonts({
-    'Cairo-Regular': require('./assets/Cairo-Regular.ttf'),
-  });
-
+// --- هذا هو المكون الفعلي الذي يحتوي على منطق التطبيق الخاص بك ---
+// تمت إعادة تسميته إلى MainUIContent
+function MainUIContent({ appLanguage }) {
   const [theme, setTheme] = useState(lightTheme);
   const [language, setLanguage] = useState(appLanguage);
-  const [isRTL, setIsRTL] = useState(I18nManager.isRTL);
+  const [isRTL, setIsRTL] = useState(appLanguage === 'ar');
   const [hasProgress, setHasProgress] = useState(false);
-  const fontApplied = useRef(false);
   
   const navState = useNavigationState(state => state);
-  
-  // <-- 3. تطبيق الخط بشكل شامل على كل النصوص بعد تحميله
-  useEffect(() => {
-    if (fontsLoaded && !fontApplied.current) {
-        const defaultFontFamily = { fontFamily: 'Cairo-Regular' };
-
-        const oldTextRender = Text.render;
-        Text.render = function (...args) {
-            const origin = oldTextRender.call(this, ...args);
-            return React.cloneElement(origin, {
-                style: [defaultFontFamily, origin.props.style]
-            });
-        };
-
-        const oldTextInputRender = TextInput.render;
-        TextInput.render = function (...args) {
-            const origin = oldTextInputRender.call(this, ...args);
-            return React.cloneElement(origin, {
-                style: [defaultFontFamily, origin.props.style]
-            });
-        };
-        fontApplied.current = true;
-    }
-  }, [fontsLoaded]);
 
   useFocusEffect(
     React.useCallback(() => {
@@ -548,7 +521,14 @@ function MainUIScreen({ appLanguage }) {
   
   useEffect(() => { 
     setLanguage(appLanguage); 
-    setIsRTL(appLanguage === 'ar'); 
+    const shouldBeRTL = appLanguage === 'ar';
+    setIsRTL(shouldBeRTL); 
+    // الكود الأهم لضبط اتجاه APK
+    if (I18nManager.isRTL !== shouldBeRTL) {
+        I18nManager.forceRTL(shouldBeRTL);
+        // تحتاج لإعادة تحميل التطبيق (RN.restart()) لتطبيق التغيير فوراً، 
+        // ولكن للبدء الأولي، هذا يكفي.
+    }
   }, [appLanguage]);
 
   const handleThemeChange = async (isDark) => {
@@ -587,17 +567,6 @@ function MainUIScreen({ appLanguage }) {
     setupInitialTasks();
   }, []);
 
-  // <-- 4. عرض شاشة تحميل أثناء تحميل الخط
-  if (!fontsLoaded) {
-    return (
-      <SafeAreaView style={{ flex: 1, backgroundColor: lightTheme.background }}>
-        <View style={{ flex: 1, justifyContent: 'center', alignItems: 'center' }}>
-          <ActivityIndicator size="large" color={lightTheme.primary} />
-        </View>
-      </SafeAreaView>
-    );
-  }
-
   return (
     <Tab.Navigator
       screenOptions={{ headerShown: false }}
@@ -628,6 +597,31 @@ function MainUIScreen({ appLanguage }) {
   );
 }
 
+const loadFonts = () => {
+    return Font.loadAsync({
+        'Cairo-Regular': require('./assets/Cairo-Regular.ttf'),
+    });
+};
+
+// --- هذا هو المكون الجديد الذي سيتم تصديره ---
+// وظيفته هي تحميل الخطوط ثم عرض المكون الرئيسي
+function MainUIScreen(props) {
+    const [fontsLoaded, setFontsLoaded] = useState(false);
+
+    if (!fontsLoaded) {
+        return (
+            <AppLoading
+                startAsync={loadFonts}
+                onFinish={() => setFontsLoaded(true)}
+                onError={console.warn}
+            />
+        );
+    }
+    
+    // بعد تحميل الخط، يتم عرض التطبيق بالكامل
+    return <MainUIContent {...props} />;
+}
+
 const styles = StyleSheet.create({ 
     rootContainer: (theme) => ({ flex: 1, backgroundColor: theme.background }), 
     container: { paddingHorizontal: 20, paddingBottom: 80 }, 
@@ -648,50 +642,50 @@ const styles = StyleSheet.create({
         color: theme.textPrimary,
         textAlign: 'center',
         marginHorizontal: 10,
+        fontFamily: 'Cairo-Regular', // تطبيق الخط هنا
     }), 
     weekContainer: (isRTL) => ({
         flexDirection: isRTL ? 'row-reverse' : 'row',
         justifyContent: 'space-around',
         marginBottom: 10
     }),
-    weekDayText: (theme) => ({ fontSize: 14, color: theme.textSecondary, fontWeight: '500', width: 40, textAlign: 'center' }), 
+    weekDayText: (theme) => ({ fontSize: 14, color: theme.textSecondary, fontWeight: '500', width: 40, textAlign: 'center', fontFamily: 'Cairo-Regular' }), 
     datesContainer: (isRTL) => ({
         flexDirection: isRTL ? 'row-reverse' : 'row',
         justifyContent: 'space-around'
     }), 
-    dateCircle: { width: 40, height: 40, borderRadius: 21, justifyContent: 'center', alignItems: 'center' },
     dateText: (theme) => ({ fontSize: 16, color: theme.textPrimary, fontWeight: '600' }), 
     activeText: (theme) => ({ color: theme.white }), 
     disabledDateText: (theme) => ({ color: theme.disabled }), 
     summaryCircleContainer: { justifyContent: 'center', position: 'relative' }, 
     summaryTextContainer: { position: 'absolute', alignItems: 'center', top: 0, left: 0, right: 0, bottom: 0, justifyContent: 'center' }, 
-    remainingCaloriesText: (theme) => ({ fontSize: 42, fontWeight: 'bold', color: theme.textPrimary }), 
-    remainingLabel: (theme) => ({ fontSize: 14, color: theme.textSecondary }), 
+    remainingCaloriesText: (theme) => ({ fontSize: 42, fontWeight: 'bold', color: theme.textPrimary, fontFamily: 'Cairo-Regular' }), 
+    remainingLabel: (theme) => ({ fontSize: 14, color: theme.textSecondary, fontFamily: 'Cairo-Regular' }), 
     progressIndicatorDot: (theme) => ({ position: 'absolute', top: 0, left: 0, backgroundColor: theme.indicatorDot, borderWidth: 3, borderColor: theme.card }), 
     sectionHeaderContainer: (isRTL) => ({ marginTop: 15, marginBottom: 10, alignItems: isRTL ? 'flex-end' : 'flex-start' }),
-    sectionTitle: (theme, isRTL) => ({ fontSize: 22, fontWeight: 'bold', color: theme.textPrimary, textAlign: isRTL ? 'right' : 'left', marginBottom: 0, flexShrink: 1 }),
-    sectionDescription: (theme, isRTL) => ({ fontSize: 14, color: theme.textSecondary, textAlign: isRTL ? 'right' : 'left' }),
+    sectionTitle: (theme, isRTL) => ({ fontSize: 22, fontWeight: 'bold', color: theme.textPrimary, textAlign: isRTL ? 'right' : 'left', marginBottom: 0, flexShrink: 1, fontFamily: 'Cairo-Regular' }),
+    sectionDescription: (theme, isRTL) => ({ fontSize: 14, color: theme.textSecondary, textAlign: isRTL ? 'right' : 'left', fontFamily: 'Cairo-Regular' }),
     mealSectionHeader: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 15, paddingBottom: 10, }),
     mealSectionHeaderLeft: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center' }),
     mealIcon: (isRTL) => ({ [isRTL ? 'marginLeft' : 'marginRight']: 10 }),
-    mealSectionTitle: (theme) => ({ fontSize: 22, fontWeight: 'bold', color: theme.textPrimary }), 
-    mealSectionTotalCalories: (theme) => ({ fontSize: 16, color: theme.textSecondary, fontWeight: '600' }), 
+    mealSectionTitle: (theme) => ({ fontSize: 22, fontWeight: 'bold', color: theme.textPrimary, fontFamily: 'Cairo-Regular' }), 
+    mealSectionTotalCalories: (theme) => ({ fontSize: 16, color: theme.textSecondary, fontWeight: '600', fontFamily: 'Cairo-Regular' }), 
     mealMacrosContainer: (theme, isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'flex-start', alignItems: 'center', marginTop: 15, paddingTop: 10, borderTopWidth: 1, borderTopColor: theme.background, flexWrap: 'wrap' }), 
     macroSummaryItem: (isRTL) => ({ [isRTL ? 'marginLeft' : 'marginRight']: 20, marginBottom: 5 }), 
-    macroSummaryText: (theme) => ({ fontSize: 13, color: theme.textSecondary, fontWeight: '600' }), 
+    macroSummaryText: (theme) => ({ fontSize: 13, color: theme.textSecondary, fontWeight: '600', fontFamily: 'Cairo-Regular' }), 
     smartAddButton: (theme) => ({ marginTop: 15, paddingVertical: 15, borderRadius: 15, backgroundColor: theme.primary, alignItems: 'center', justifyContent: 'center', width: '100%' }), 
-    smartAddButtonText: (theme) => ({ color: theme.white, fontSize: 18, fontWeight: 'bold' }), 
+    smartAddButtonText: (theme) => ({ color: theme.white, fontSize: 18, fontWeight: 'bold', fontFamily: 'Cairo-Regular' }), 
     disabledButton: (theme) => ({ backgroundColor: theme.disabled }), 
     readOnlyBanner: (theme, isRTL) => ({ backgroundColor: theme.readOnlyBanner, borderRadius: 10, padding: 10, flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', marginBottom: 15 }), 
-    readOnlyBannerText: (theme, isRTL) => ({ color: theme.white, fontSize: 14, fontWeight: 'bold', flex: 1, textAlign: isRTL ? 'right' : 'left' }), 
+    readOnlyBannerText: (theme, isRTL) => ({ color: theme.white, fontSize: 14, fontWeight: 'bold', flex: 1, textAlign: isRTL ? 'right' : 'left', fontFamily: 'Cairo-Regular' }), 
     nutrientRowHeader: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6, }),
     nutrientRowContainer: { marginBottom: 15, }, 
-    nutrientRowLabel: (theme) => ({ fontSize: 16, color: theme.textPrimary, fontWeight: '600', }), 
-    nutrientRowValue: (theme) => ({ fontSize: 14, color: theme.textSecondary, }), 
+    nutrientRowLabel: (theme) => ({ fontSize: 16, color: theme.textPrimary, fontWeight: '600', fontFamily: 'Cairo-Regular' }), 
+    nutrientRowValue: (theme) => ({ fontSize: 14, color: theme.textSecondary, fontFamily: 'Cairo-Regular' }), 
     tabBarContainer: (theme) => ({ position: 'absolute', bottom: 0, left: 0, right: 0, height: 70, flexDirection: 'row', backgroundColor: theme.tabBarBackground }),
     tabItem: { height: 70, justifyContent: 'center', alignItems: 'center' }, 
     tabIconContainer: { width: 60, height: 60, justifyContent: 'center', alignItems: 'center', },
-    tabText: (theme) => ({ position: 'absolute', color: theme.tabBarIcon, fontSize: 12, fontWeight: '400' }), 
+    tabText: (theme) => ({ position: 'absolute', color: theme.tabBarIcon, fontSize: 12, fontWeight: '400', fontFamily: 'Cairo-Regular' }), 
     indicatorContainer: { position: 'absolute', top: -35, left: 0, height: INDICATOR_DIAMETER, alignItems: 'center', zIndex: 0 }, 
     indicator: (theme) => ({ width: INDICATOR_DIAMETER, height: INDICATOR_DIAMETER, borderRadius: INDICATOR_DIAMETER / 2, borderWidth: 6, borderColor: theme.background }), 
     cutout: { position: 'absolute', top: '50%', width: 20, height: 20, backgroundColor: 'transparent', shadowOpacity: 1, shadowRadius: 0 }, 
@@ -704,37 +698,37 @@ const styles = StyleSheet.create({
     modalOverlay: { flex: 1, justifyContent: 'center', alignItems: 'center', backgroundColor: 'rgba(0,0,0,0.5)' }, 
     modalView: (theme) => ({ width: '90%', maxHeight: '80%', backgroundColor: theme.background, borderRadius: 20, padding: 0, shadowColor: "#000", shadowOffset: { width: 0, height: 2 }, shadowOpacity: 0.25, shadowRadius: 4, elevation: 5, overflow: 'hidden' }), 
     modalHeader: (theme, isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', padding: 15, borderBottomWidth: 1, borderBottomColor: '#eee', backgroundColor: theme.card }), 
-    modalTitle: (theme) => ({ fontSize: 20, fontWeight: 'bold', color: theme.textPrimary }), 
+    modalTitle: (theme) => ({ fontSize: 20, fontWeight: 'bold', color: theme.textPrimary, fontFamily: 'Cairo-Regular' }), 
     searchContainer: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', padding: 15, backgroundColor: 'transparent' }), 
-    searchInput: (theme, isRTL) => ({ flex: 1, height: 50, backgroundColor: theme.background, borderRadius: 10, paddingHorizontal: 15, fontSize: 16, textAlign: isRTL ? 'right' : 'left', color: theme.textPrimary }), 
+    searchInput: (theme, isRTL) => ({ flex: 1, height: 50, backgroundColor: theme.background, borderRadius: 10, paddingHorizontal: 15, fontSize: 16, textAlign: isRTL ? 'right' : 'left', color: theme.textPrimary, fontFamily: 'Cairo-Regular' }), 
     searchButton: (theme, isRTL) => ({ width: 50, height: 50, backgroundColor: theme.primary, borderRadius: 10, justifyContent: 'center', alignItems: 'center', [isRTL ? 'marginRight' : 'marginLeft']: 10 }), 
     resultItem: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', backgroundColor: 'transparent', padding: 20, borderBottomWidth: 1, borderBottomColor: '#eee' }), 
-    foodName: (theme) => ({ fontSize: 16, color: theme.textPrimary }), 
-    emptyText: (theme) => ({ textAlign: 'center', marginTop: 50, fontSize: 16, color: theme.textSecondary }), 
+    foodName: (theme) => ({ fontSize: 16, color: theme.textPrimary, fontFamily: 'Cairo-Regular' }), 
+    emptyText: (theme) => ({ textAlign: 'center', marginTop: 50, fontSize: 16, color: theme.textSecondary, fontFamily: 'Cairo-Regular' }), 
     dashboardGridContainer: { flexDirection: 'row', justifyContent: 'space-between', marginBottom: 15, flexWrap: 'wrap', rowGap: 15, }, 
     smallCard: (theme) => ({ width: '48.5%', backgroundColor: theme.card, borderRadius: 20, padding: 15, minHeight: 120, justifyContent: 'space-between', }), 
     smallCardHeader: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', }), 
     smallCardIconContainer: (theme) => ({ width: 32, height: 32, borderRadius: 16, justifyContent: 'center', alignItems: 'center', backgroundColor: theme.progressUnfilled }), 
-    smallCardTitle: (theme, isRTL) => ({ fontSize: 16, fontWeight: '600', color: theme.textPrimary, [isRTL ? 'marginRight' : 'marginLeft']: 8 }), 
-    smallCardValue: (theme, isRTL) => ({ fontSize: 28, fontWeight: 'bold', color: theme.textPrimary, textAlign: isRTL ? 'right' : 'left', }), 
-    smallCardSubValue: (theme, isRTL) => ({ fontSize: 14, color: theme.textSecondary, textAlign: isRTL ? 'right' : 'left', marginTop: -5, }), 
+    smallCardTitle: (theme, isRTL) => ({ fontSize: 16, fontWeight: '600', color: theme.textPrimary, [isRTL ? 'marginRight' : 'marginLeft']: 8, fontFamily: 'Cairo-Regular' }), 
+    smallCardValue: (theme, isRTL) => ({ fontSize: 28, fontWeight: 'bold', color: theme.textPrimary, textAlign: isRTL ? 'right' : 'left', fontFamily: 'Cairo-Regular' }), 
+    smallCardSubValue: (theme, isRTL) => ({ fontSize: 14, color: theme.textSecondary, textAlign: isRTL ? 'right' : 'left', marginTop: -5, fontFamily: 'Cairo-Regular' }), 
     smallCardContent: (isRTL) => ({ alignItems: isRTL ? 'flex-end' : 'flex-start' }), 
     waterVisualizerContainer: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', justifyContent: 'flex-start', flexWrap: 'wrap', rowGap: 5, }), 
     waterDropIcon: { marginHorizontal: 1, }, 
     stepsCardContent: { flex: 1, justifyContent: 'center', alignItems: 'center' }, 
     stepsCardCircleContainer: { justifyContent: 'center', alignItems: 'center', marginVertical: 5, }, 
     stepsCardTextContainer: { position: 'absolute', }, 
-    stepsCardCountText: (theme) => ({ fontSize: 22, fontWeight: 'bold', color: theme.textPrimary, }), 
-    stepsCardGoalText: (theme) => ({ fontSize: 13, color: theme.textSecondary, marginTop: 2, }), 
+    stepsCardCountText: (theme) => ({ fontSize: 22, fontWeight: 'bold', color: theme.textPrimary, fontFamily: 'Cairo-Regular' }), 
+    stepsCardGoalText: (theme) => ({ fontSize: 13, color: theme.textSecondary, marginTop: 2, fontFamily: 'Cairo-Regular' }), 
     foodLogItemContainer: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', paddingVertical: 12, borderBottomWidth: 1, borderBottomColor: '#eee' }), 
     foodLogItemImage: (isRTL) => ({ width: 50, height: 50, borderRadius: 10, [isRTL ? 'marginLeft' : 'marginRight']: 15, }), 
     foodLogItemImagePlaceholder: (theme, isRTL) => ({ width: 50, height: 50, borderRadius: 10, [isRTL ? 'marginLeft' : 'marginRight']: 15, backgroundColor: theme.background, justifyContent: 'center', alignItems: 'center', }), 
     foodLogItemDetails: { flex: 1, }, 
     foodLogItemHeader: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 4, }), 
-    foodLogItemName: (theme, isRTL) => ({ fontSize: 16, fontWeight : '600', color: theme.textPrimary, flex: 1, textAlign: isRTL ? 'right' : 'left', }), 
-    foodLogItemCalories: (theme, isRTL) => ({ fontSize: 14, fontWeight: '500', color: theme.primary, [isRTL ? 'marginRight' : 'marginLeft']: 8, }), 
+    foodLogItemName: (theme, isRTL) => ({ fontSize: 16, fontWeight : '600', color: theme.textPrimary, flex: 1, textAlign: isRTL ? 'right' : 'left', fontFamily: 'Cairo-Regular' }), 
+    foodLogItemCalories: (theme, isRTL) => ({ fontSize: 14, fontWeight: '500', color: theme.primary, [isRTL ? 'marginRight' : 'marginLeft']: 8, fontFamily: 'Cairo-Regular' }), 
     foodLogItemMacros: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', flexWrap: 'wrap', marginTop: 6, }), 
-    macroText: (theme, isRTL) => ({ fontSize: 13, color: theme.textSecondary, [isRTL ? 'marginLeft' : 'marginRight']: 15, marginBottom: 4, }), 
+    macroText: (theme, isRTL) => ({ fontSize: 13, color: theme.textSecondary, [isRTL ? 'marginLeft' : 'marginRight']: 15, marginBottom: 4, fontFamily: 'Cairo-Regular' }), 
     dailyLogCard: { paddingVertical: 18, paddingHorizontal: 15, }, 
     dailyLogContentContainer: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', justifyContent: 'space-between', alignItems: 'center', }), 
     dailyLogLeftContainer: (isRTL) => ({ flexDirection: isRTL ? 'row-reverse' : 'row', alignItems: 'center', }), 
@@ -742,7 +736,7 @@ const styles = StyleSheet.create({
     previewImage: (theme) => ({ width: 38, height: 38, borderRadius: 19, borderWidth: 2, borderColor: theme.card, backgroundColor: '#f0f0f0', }), 
     previewImagePlaceholder: (theme) => ({ justifyContent: 'center', alignItems: 'center', backgroundColor: theme.background }), 
     previewCounterCircle: (theme) => ({ width: 38, height: 38, borderRadius: 19, backgroundColor: theme.progressUnfilled, justifyContent: 'center', alignItems: 'center', borderWidth: 2, borderColor: theme.card, }), 
-    previewCounterText: (theme) => ({ color: theme.primary, fontWeight: 'bold', fontSize: 12, }),
+    previewCounterText: (theme) => ({ color: theme.primary, fontWeight: 'bold', fontSize: 12, fontFamily: 'Cairo-Regular' }),
 });
  
 export default MainUIScreen;
